@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance</title>
+    <link rel="stylesheet" href="/css/attendance.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Mark Attendance</h2>
+        <div id="student-info" class="student-info"></div>
+
+<!-- Your existing Present / Absent buttons here -->
+
+        <button onclick="mark('present')">Present</button>
+        <button onclick="mark('absent')">Absent</button>
+    </div>
+
+    <script>
+        async function mark(status) {
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                },
+                body: JSON.stringify({ status })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+        document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    // Fetch student info
+    const res = await fetch('/api/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    // Show student details
+    const infoDiv = document.getElementById('student-info');
+    infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
+});
+
+    </script>
+</body>
+</html>

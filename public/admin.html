@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Today's Present Students</h2>
+        <p>Total Present: <span id="total">0</span></p>
+        <ul id="list"></ul>
+    </div>
+
+    <script>
+        async function load() {
+            const res = await fetch('/api/admin/today', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            });
+            const data = await res.json();
+            document.getElementById('total').innerText = data.total;
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            data.usns.forEach(usn => {
+                const li = document.createElement('li');
+                li.textContent = usn;
+                list.appendChild(li);
+            });
+        }
+        load();
+    </script>
+</body>
+</html>
