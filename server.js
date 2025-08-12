@@ -1,4 +1,4 @@
-// server.js (Render + Local Friendly)
+// server.js (Render + Local Friendly + Device Lock)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -25,7 +25,8 @@ const userSchema = new mongoose.Schema({
   name: String,
   usn: String,
   password: String, // plain-text
-  role: { type: String, default: 'student' }
+  role: { type: String, default: 'student' },
+  deviceId: String // store first device's ID or fingerprint
 });
 const attendanceSchema = new mongoose.Schema({
   usn: String,
@@ -48,17 +49,27 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Login route
+// Login route with device lock
 app.post('/api/login', async (req, res) => {
   try {
-    const { usn, password } = req.body;
-    if (!usn || !password) {
-      return res.status(400).json({ error: 'USN and password required' });
+    const { usn, password, deviceId } = req.body;
+    if (!usn || !password || !deviceId) {
+      return res.status(400).json({ error: 'USN, password, and device ID required' });
     }
 
     const user = await User.findOne({ usn });
     if (!user || user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // If deviceId not set yet, store the first one
+    if (!user.deviceId) {
+      user.deviceId = deviceId;
+      await user.save();
+    } 
+    // If trying from different device, block login
+    else if (user.deviceId !== deviceId) {
+      return res.status(403).json({ error: 'You can only log in from your registered device' });
     }
 
     const token = jwt.sign(
@@ -69,6 +80,7 @@ app.post('/api/login', async (req, res) => {
 
     res.json({ token, role: user.role, name: user.name, usn: user.usn });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -94,9 +106,8 @@ app.get('/api/me', authMiddleware, async (req, res) => {
   res.json({ name: me.name, usn: me.usn, role: me.role });
 });
 
-// Attendance with IP restriction
+// Attendance with IP restriction + once per day
 app.post('/api/attendance', authMiddleware, async (req, res) => {
-  // Allowed IPs: change for your campus Wi-Fi
   const allowedIPs = ['49.37.250.52','117.230.5.171','152.57.115.200', '127.0.0.1', '::1'];
 
   let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
@@ -135,6 +146,3 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-
-
