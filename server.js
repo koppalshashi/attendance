@@ -24,9 +24,9 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/attendanceA
 const userSchema = new mongoose.Schema({
   name: String,
   usn: String,
-  password: String, // plain-text
+  password: String, // plain-text for now
   role: { type: String, default: 'student' },
-  deviceId: String // store first device's ID or fingerprint
+  deviceId: String // New field for device lock
 });
 const attendanceSchema = new mongoose.Schema({
   usn: String,
@@ -54,7 +54,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { usn, password, deviceId } = req.body;
     if (!usn || !password || !deviceId) {
-      return res.status(400).json({ error: 'USN, password, and device ID required' });
+      return res.status(400).json({ error: 'USN, password and device ID required' });
     }
 
     const user = await User.findOne({ usn });
@@ -62,14 +62,15 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // If deviceId not set yet, store the first one
+    // Device restriction check
+    if (user.deviceId && user.deviceId !== deviceId) {
+      return res.status(403).json({ error: 'This account is already linked to another device' });
+    }
+
+    // Save deviceId for first login
     if (!user.deviceId) {
       user.deviceId = deviceId;
       await user.save();
-    } 
-    // If trying from different device, block login
-    else if (user.deviceId !== deviceId) {
-      return res.status(403).json({ error: 'You can only log in from your registered device' });
     }
 
     const token = jwt.sign(
@@ -106,7 +107,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
   res.json({ name: me.name, usn: me.usn, role: me.role });
 });
 
-// Attendance with IP restriction + once per day
+// Attendance with IP restriction
 app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = ['49.37.250.52','117.230.5.171','152.57.115.200', '127.0.0.1', '::1'];
 
