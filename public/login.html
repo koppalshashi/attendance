@@ -13,14 +13,28 @@
     </div>
 
     <script>
+        // Generate or retrieve persistent deviceId
+        let deviceId = localStorage.getItem('deviceId');
+        if (!deviceId) {
+            deviceId = crypto.randomUUID(); // Generates a unique ID
+            localStorage.setItem('deviceId', deviceId);
+        }
+
         async function login() {
-            const usn = document.getElementById('usn').value;
-            const password = document.getElementById('password').value;
+            const usn = document.getElementById('usn').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!usn || !password) {
+                alert("Please enter both USN and Password");
+                return;
+            }
+
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usn, password })
+                body: JSON.stringify({ usn, password, deviceId }) // Send deviceId
             });
+
             const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('token', data.token);
@@ -34,7 +48,7 @@
                     window.location.href = '/attendance.html';
                 }
             } else {
-                alert(data.error);
+                alert(data.error || "Login failed");
             }
         }
     </script>
