@@ -1,41 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="/css/login.css">
 </head>
 <body>
     <div class="container">
         <h2>Login</h2>
-        <input type="text" id="usn" placeholder="USN">
-        <input type="password" id="password" placeholder="Password">
+        <input type="text" id="usn" placeholder="USN" required>
+        <input type="password" id="password" placeholder="Password" required>
         <button onclick="login()">Login</button>
     </div>
 
     <script>
-        // Generate or retrieve persistent deviceId
-        let deviceId = localStorage.getItem('deviceId');
-        if (!deviceId) {
-            deviceId = crypto.randomUUID(); // Generates a unique ID
-            localStorage.setItem('deviceId', deviceId);
-        }
-
         async function login() {
             const usn = document.getElementById('usn').value.trim();
             const password = document.getElementById('password').value.trim();
 
             if (!usn || !password) {
-                alert("Please enter both USN and Password");
+                alert('Please enter both USN and password.');
                 return;
             }
 
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ usn, password, deviceId }) // Send deviceId
+                body: JSON.stringify({ usn, password })
             });
 
             const data = await res.json();
+
             if (res.ok) {
                 localStorage.setItem('token', data.token);
                 const me = await fetch('/api/me', {
@@ -48,7 +44,7 @@
                     window.location.href = '/attendance.html';
                 }
             } else {
-                alert(data.error || "Login failed");
+                alert(data.error);
             }
         }
     </script>
