@@ -1,4 +1,4 @@
-// server.js (final with IP restriction)
+// server.js (Render + Local Friendly)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -9,15 +9,16 @@ const cors = require('cors');
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'mysupersecret';
 
-// Enable trust proxy for correct IP detection behind NAT/proxies
+// Enable trust proxy for correct IP detection (important for Render)
 app.set('trust proxy', true);
 
 // --- MongoDB Connection ---
-mongoose.connect('mongodb://127.0.0.1:27017/attendanceApp', {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/attendanceApp', {
   useNewUrlParser: true,
   useUnifiedTopology: true
-}).then(() => console.log('MongoDB Connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+})
+.then(() => console.log('✅ MongoDB Connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // --- Mongoose Schemas ---
 const userSchema = new mongoose.Schema({
@@ -51,20 +52,12 @@ app.get('/', (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { usn, password } = req.body;
-    console.log('Login attempt:', { usn, passwordProvided: !!password });
-
     if (!usn || !password) {
       return res.status(400).json({ error: 'USN and password required' });
     }
 
     const user = await User.findOne({ usn });
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    if (user.password !== password) {
-      console.log(`Password mismatch for usn=${usn}`);
+    if (!user || user.password !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -74,46 +67,41 @@ app.post('/api/login', async (req, res) => {
       { expiresIn: '1d' }
     );
 
-    console.log(`Login success for usn=${usn}`);
-    return res.json({ token, role: user.role, name: user.name, usn: user.usn });
+    res.json({ token, role: user.role, name: user.name, usn: user.usn });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Middleware to protect routes
+// Auth middleware
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No token' });
 
-  const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    const token = authHeader.split(' ')[1];
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' });
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
   }
 }
 
-// Get current user info
+// Current user info
 app.get('/api/me', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me) return res.status(404).json({ error: 'User not found' });
   res.json({ name: me.name, usn: me.usn, role: me.role });
 });
 
-// Mark attendance — IP restriction here
+// Attendance with IP restriction
 app.post('/api/attendance', authMiddleware, async (req, res) => {
-  // Allowed public IPs (college Wi-Fi + localhost for testing)
-  const allowedIPs = ['49.37.250.52', '124.0.0.1', '::1'];
+  // Allowed IPs: change for your campus Wi-Fi
+  const allowedIPs = ['49.37.250.52', '127.0.0.1', '::1'];
 
-  // Get client IP (normalize IPv4/IPv6)
-  let clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
-  clientIP = clientIP.split(',')[0].replace('::ffff:', '').trim();
-
-  console.log('Attendance marking request from IP:', clientIP);
+  let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
+  clientIP = clientIP.replace('::ffff:', '').trim();
+  console.log('📌 IP:', clientIP);
 
   if (!allowedIPs.includes(clientIP)) {
     return res.status(403).json({ error: 'Attendance can only be marked from campus Wi-Fi' });
@@ -132,7 +120,7 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   res.json({ message: 'Attendance marked' });
 });
 
-// Admin view
+// Admin today
 app.get('/api/admin/today', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
@@ -146,4 +134,4 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
