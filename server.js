@@ -97,7 +97,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 // Attendance with IP restriction
 app.post('/api/attendance', authMiddleware, async (req, res) => {
   // Allowed IPs: change for your campus Wi-Fi
-  const allowedIPs = ['49.37.250.52',,'117.230.5.171','152.57.116.29', '127.0.0.1', '::1'];
+  const allowedIPs = ['49.37.250.52',,'117.230.5.171','152.57.118.107', '127.0.0.1', '::1'];
 
   let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
   clientIP = clientIP.replace('::ffff:', '').trim();
@@ -135,4 +135,5 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
 
