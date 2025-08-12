@@ -1,4 +1,4 @@
-// server.js (Render + Local Friendly + Device Lock)
+// server.js (Render + Local Friendly + Device Lock with Admin Exemption)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -49,11 +49,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Login route with device lock
+// Login route with device lock (admin exempt)
 app.post('/api/login', async (req, res) => {
     const { usn, password, deviceId } = req.body;
 
-    if (!usn || !password || !deviceId) {
+    if (!usn || !password || (!deviceId && usn !== 'admin')) {
         return res.status(400).json({ error: 'USN, password and device ID required' });
     }
 
@@ -68,23 +68,28 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid USN or password' });
         }
 
-        // Check if deviceId is already assigned
-        if (!user.deviceId) {
-            // First login → save the deviceId
-            user.deviceId = deviceId;
-            await user.save();
-        } else if (user.deviceId !== deviceId) {
-            // Device mismatch → block login
-            return res.status(403).json({ error: 'This account can only be accessed from the registered device.' });
+        // Skip device checks for admin
+        if (user.role !== 'admin') {
+            if (!user.deviceId) {
+                // First login → save the deviceId
+                user.deviceId = deviceId;
+                await user.save();
+            } else if (user.deviceId !== deviceId) {
+                return res.status(403).json({ error: 'This account can only be accessed from the registered device.' });
+            }
+
+            // Also make sure no OTHER student account is using this deviceId
+            const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
+            if (otherUser) {
+                return res.status(403).json({ error: 'This device is already registered to another student.' });
+            }
         }
 
-        // Also make sure no OTHER account is using the same deviceId
-        const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
-        if (otherUser) {
-            return res.status(403).json({ error: 'This device is already registered to another student.' });
-        }
-
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET || JWT_SECRET,
+            { expiresIn: '1d' }
+        );
         res.json({ token });
 
     } catch (err) {
@@ -154,4 +159,3 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
