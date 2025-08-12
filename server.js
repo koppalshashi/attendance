@@ -51,39 +51,46 @@ app.get('/', (req, res) => {
 
 // Login route with device lock
 app.post('/api/login', async (req, res) => {
-  try {
     const { usn, password, deviceId } = req.body;
+
     if (!usn || !password || !deviceId) {
-      return res.status(400).json({ error: 'USN, password and device ID required' });
+        return res.status(400).json({ error: 'USN, password and device ID required' });
     }
 
-    const user = await User.findOne({ usn });
-    if (!user || user.password !== password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    try {
+        const user = await User.findOne({ usn });
+
+        if (!user) {
+            return res.status(400).json({ error: 'Invalid USN or password' });
+        }
+
+        if (user.password !== password) {
+            return res.status(400).json({ error: 'Invalid USN or password' });
+        }
+
+        // Check if deviceId is already assigned
+        if (!user.deviceId) {
+            // First login → save the deviceId
+            user.deviceId = deviceId;
+            await user.save();
+        } else if (user.deviceId !== deviceId) {
+            // Device mismatch → block login
+            return res.status(403).json({ error: 'This account can only be accessed from the registered device.' });
+        }
+
+        // Also make sure no OTHER account is using the same deviceId
+        const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
+        if (otherUser) {
+            return res.status(403).json({ error: 'This device is already registered to another student.' });
+        }
+
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        res.json({ token });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
     }
-
-    // Device restriction check
-    if (user.deviceId && user.deviceId !== deviceId) {
-      return res.status(403).json({ error: 'This account is already linked to another device' });
-    }
-
-    // Save deviceId for first login
-    if (!user.deviceId) {
-      user.deviceId = deviceId;
-      await user.save();
-    }
-
-    const token = jwt.sign(
-      { id: user._id, usn: user.usn, role: user.role, name: user.name },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
-    res.json({ token, role: user.role, name: user.name, usn: user.usn });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
 });
 
 // Auth middleware
@@ -147,3 +154,4 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
