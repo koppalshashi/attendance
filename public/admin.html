@@ -1,32 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
-    <link rel="stylesheet" href="/css/admin.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+        }
+        input {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            input, button {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h2>Today's Present Students</h2>
-        <p>Total Present: <span id="total">0</span></p>
-        <ul id="list"></ul>
+        <h2>Login</h2>
+        <input type="text" id="usn" placeholder="USN" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="login()">Login</button>
     </div>
 
     <script>
-        async function load() {
-            const res = await fetch('/api/admin/today', {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        async function login() {
+            const usn = document.getElementById('usn').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!usn || !password) {
+                alert('Please enter both USN and password.');
+                return;
+            }
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usn, password })
             });
+
             const data = await res.json();
-            document.getElementById('total').innerText = data.total;
-            const list = document.getElementById('list');
-            list.innerHTML = '';
-            data.usns.forEach(usn => {
-                const li = document.createElement('li');
-                li.textContent = usn;
-                list.appendChild(li);
-            });
+
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                const me = await fetch('/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + data.token }
+                });
+                const user = await me.json();
+                if (user.role === 'admin') {
+                    window.location.href = '/admin.html';
+                } else {
+                    window.location.href = '/attendance.html';
+                }
+            } else {
+                alert(data.error);
+            }
         }
-        load();
     </script>
 </body>
 </html>
