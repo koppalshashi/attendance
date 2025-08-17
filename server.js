@@ -131,7 +131,7 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
     '::1',
     '117.230.0.0/16',  // range
     '152.57.0.0/16',    // range
-    '49.37.0.0/16
+    '49.37.0.0/16'
   ];
 
   // Get client IP correctly (Render provides real IP via trust proxy)
@@ -189,4 +189,5 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
 
