@@ -19,7 +19,7 @@
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
         }
         h2 { margin-top: 0; }
         button {
@@ -32,23 +32,21 @@
             font-size: 1rem;
             cursor: pointer;
         }
-        button.reset {
-            background: #e74c3c;
-            color: white;
-        }
-        button.reset:hover {
-            background: #c0392b;
-        }
-        .message {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #333;
-        }
-        ul {
-            text-align: left;
-            padding-left: 20px;
-        }
+        button.reset { background: #e74c3c; color: white; }
+        button.reset:hover { background: #c0392b; }
+        button.send { background: #3498db; color: white; }
+        button.send:hover { background: #2980b9; }
+        .message { margin-top: 10px; font-weight: bold; color: #333; }
+        ul { text-align: left; padding-left: 20px; }
         li { margin: 3px 0; }
+        input[type=email] {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body>
@@ -59,6 +57,11 @@
 
         <!-- Reset All Attendance -->
         <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+
+        <!-- Send Attendance via Email -->
+        <input type="email" id="email" placeholder="Enter faculty email" />
+        <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
+
         <p class="message" id="msg"></p>
     </div>
 
@@ -69,7 +72,7 @@
                     headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
                 const data = await res.json();
-                
+
                 document.getElementById('total').innerText = data.total || 0;
                 const list = document.getElementById('list');
                 list.innerHTML = '';
@@ -95,17 +98,38 @@
             try {
                 const res = await fetch('/api/admin/reset-all', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    }
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
-
                 const data = await res.json();
                 document.getElementById('msg').innerText = data.message || data.error;
-                load(); // refresh the list after reset
+                load(); // refresh after reset
             } catch (err) {
                 console.error(err);
                 document.getElementById('msg').innerText = "❌ Server error";
+            }
+        }
+
+        async function sendEmail() {
+            const email = document.getElementById('email').value.trim();
+            if (!email) {
+                alert("Please enter a valid email");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/admin/send-email', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                document.getElementById('msg').innerText = data.message || data.error;
+            } catch (err) {
+                console.error(err);
+                document.getElementById('msg').innerText = "❌ Failed to send email";
             }
         }
 
