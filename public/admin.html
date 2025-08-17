@@ -2,55 +2,53 @@
 <html>
 <head>
     <title>Admin Panel</title>
-    
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f2f2f2;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             height: 100vh;
             margin: 0;
+            padding-top: 40px;
         }
         .container {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-            text-align: center;
             width: 100%;
-            max-width: 350px;
+            max-width: 400px;
         }
-        input {
+        h2 { margin-top: 0; }
+        button {
             display: block;
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        button {
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
+            margin: 12px 0;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
             font-size: 1rem;
+            cursor: pointer;
         }
-        button:hover {
-            background: #45a049;
+        button.reset {
+            background: #e74c3c;
+            color: white;
         }
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-            input, button {
-                font-size: 0.9rem;
-            }
+        button.reset:hover {
+            background: #c0392b;
         }
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+        ul {
+            text-align: left;
+            padding-left: 20px;
+        }
+        li { margin: 3px 0; }
     </style>
 </head>
 <body>
@@ -58,25 +56,60 @@
         <h2>Today's Present Students</h2>
         <p>Total Present: <span id="total">0</span></p>
         <ul id="list"></ul>
+
+        <!-- Reset All Attendance -->
+        <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+        <p class="message" id="msg"></p>
     </div>
 
     <script>
         async function load() {
-            const res = await fetch('/api/admin/today', {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-            });
-            const data = await res.json();
-            document.getElementById('total').innerText = data.total;
-            const list = document.getElementById('list');
-            list.innerHTML = '';
-            data.usns.forEach(usn => {
-                const li = document.createElement('li');
-                li.textContent = usn;
-                list.appendChild(li);
-            });
+            try {
+                const res = await fetch('/api/admin/today', {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                });
+                const data = await res.json();
+                
+                document.getElementById('total').innerText = data.total || 0;
+                const list = document.getElementById('list');
+                list.innerHTML = '';
+
+                if (data.usns && data.usns.length > 0) {
+                    data.usns.forEach(usn => {
+                        const li = document.createElement('li');
+                        li.textContent = usn;
+                        list.appendChild(li);
+                    });
+                } else {
+                    list.innerHTML = '<li>No attendance marked today.</li>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
+            }
         }
+
+        async function resetAll() {
+            if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
+
+            try {
+                const res = await fetch('/api/admin/reset-all', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
+                });
+
+                const data = await res.json();
+                document.getElementById('msg').innerText = data.message || data.error;
+                load(); // refresh the list after reset
+            } catch (err) {
+                console.error(err);
+                document.getElementById('msg').innerText = "❌ Server error";
+            }
+        }
+
         load();
     </script>
 </body>
 </html>
-
