@@ -1,11 +1,11 @@
-// server.js (with Admin Reset All Option & Fixed Device Lock)
+// server.js (with Admin Reset All Option, Device Lock & IP Range Fix)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const path = require('path');
 const cors = require('cors');
-//const ipRangeCheck = require("ip-range-check");
+const ipRangeCheck = require("ip-range-check");
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'mysupersecret';
@@ -123,21 +123,23 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 // --- Attendance marking (with IP restriction + one per day) ---
 app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = [
-    '49.37.250.172',
+    '49.37.250.175',   // single IP
     '117.230.5.171',
     '152.57.115.200',
     '152.57.74.97',
     '127.0.0.1',
-    '117.230.0.0/16',
-    '152.57.0.0/16',
-    '::1'
+    '::1',
+    '117.230.0.0/16',  // range
+    '152.57.0.0/16'    // range
   ];
 
-  let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
-  clientIP = clientIP.replace('::ffff:', '').trim();
+  // Get client IP correctly (Render provides real IP via trust proxy)
+  let clientIP = req.ip?.replace('::ffff:', '') || '';
   console.log('📌 Client IP:', clientIP);
 
-  if (!allowedIPs.includes(clientIP)) {
+  // Use ip-range-check to allow both ranges and single IPs
+  if (!ipRangeCheck(clientIP, allowedIPs)) {
+    console.log('❌ Blocked IP:', clientIP);
     return res.status(403).json({ error: 'Attendance can only be marked from campus Wi-Fi' });
   }
 
@@ -186,8 +188,3 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-
-
-
-
