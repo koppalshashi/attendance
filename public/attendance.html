@@ -1,115 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
+    <meta charset="UTF-8">
+    <title>Attendance</title>
     <style>
+        /* General page styling */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
+            background: linear-gradient(135deg, #6dd5ed, #2193b0);
+            margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             height: 100vh;
-            margin: 0;
-            padding-top: 40px;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        h2 { margin-top: 0; }
-        button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 12px 0;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        button.reset {
-            background: #e74c3c;
-            color: white;
-        }
-        button.reset:hover {
-            background: #c0392b;
-        }
-        .message {
-            margin-top: 10px;
-            font-weight: bold;
             color: #333;
         }
-        ul {
-            text-align: left;
-            padding-left: 20px;
+
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 350px;
+            max-width: 90%;
         }
-        li { margin: 3px 0; }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #2193b0;
+        }
+
+        .student-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-align: left;
+        }
+
+        .student-info h3 {
+            margin: 0;
+            color: #333;
+        }
+
+        .attendance-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #fff;
+        }
+
+        button:nth-child(1) {
+            background: #4CAF50; /* Green for Present */
+        }
+
+        button:nth-child(1):hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        button:nth-child(2) {
+            background: #f44336; /* Red for Absent */
+        }
+
+        button:nth-child(2):hover {
+            background: #d32f2f;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Today's Present Students</h2>
-        <p>Total Present: <span id="total">0</span></p>
-        <ul id="list"></ul>
+        <h2>Mark Attendance</h2>
 
-        <!-- Reset All Attendance -->
-        <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
-        <p class="message" id="msg"></p>
+        <!-- Student info will be displayed here -->
+        <div id="student-info" class="student-info"></div>
+
+        <!-- Attendance buttons -->
+        <div class="attendance-buttons">
+            <button onclick="mark('present')">Present</button>
+            <button onclick="mark('absent')">Absent</button>
+        </div>
     </div>
 
     <script>
-        async function load() {
+        // Function to mark attendance
+        async function mark(status) {
             try {
-                const res = await fetch('/api/admin/today', {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                const res = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    },
+                    body: JSON.stringify({ status })
                 });
-                const data = await res.json();
-                
-                document.getElementById('total').innerText = data.total || 0;
-                const list = document.getElementById('list');
-                list.innerHTML = '';
 
-                if (data.usns && data.usns.length > 0) {
-                    data.usns.forEach(usn => {
-                        const li = document.createElement('li');
-                        li.textContent = usn;
-                        list.appendChild(li);
-                    });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert("✅ " + data.message);
                 } else {
-                    list.innerHTML = '<li>No attendance marked today.</li>';
+                    alert("❌ " + (data.message || "Error marking attendance"));
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
+                alert("⚠️ Server error while marking attendance");
             }
         }
 
-        async function resetAll() {
-            if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
+        // Load student info on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                // Redirect to login if not logged in
+                window.location.href = '/login.html';
+                return;
+            }
 
             try {
-                const res = await fetch('/api/admin/reset-all', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    }
+                const res = await fetch('/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
                 });
-
                 const data = await res.json();
-                document.getElementById('msg').innerText = data.message || data.error;
-                load(); // refresh the list after reset
+
+                if (res.ok) {
+                    // Show student details
+                    const infoDiv = document.getElementById('student-info');
+                    infoDiv.innerHTML = `
+                        <h3>Welcome, ${data.name}</h3>
+                        <p>USN: ${data.usn}</p>
+                    `;
+                } else {
+                    alert("⚠️ Session expired, please login again");
+                    window.location.href = '/login.html';
+                }
             } catch (err) {
                 console.error(err);
-                document.getElementById('msg').innerText = "❌ Server error";
+                alert("⚠️ Unable to fetch student info");
             }
-        }
-
-        load();
+        });
     </script>
 </body>
 </html>
