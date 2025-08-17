@@ -50,11 +50,12 @@ app.get('/', (req, res) => {
 });
 
 // Login route with device lock (admin exempt)
+
 app.post('/api/login', async (req, res) => {
     const { usn, password, deviceId } = req.body;
 
-    if (!usn || !password || (!deviceId && usn !== 'admin')) {
-        return res.status(400).json({ error: 'USN, password and device ID required' });
+    if (!usn || !password) {
+        return res.status(400).json({ error: 'USN and password required' });
     }
 
     try {
@@ -68,17 +69,19 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ error: 'Invalid USN or password' });
         }
 
-        // Skip device checks for admin
+        // 👉 Only enforce device lock if NOT admin
         if (user.role !== 'admin') {
+            if (!deviceId) {
+                return res.status(400).json({ error: 'Device ID required for students' });
+            }
+
             if (!user.deviceId) {
-                // First login → save the deviceId
                 user.deviceId = deviceId;
                 await user.save();
             } else if (user.deviceId !== deviceId) {
                 return res.status(403).json({ error: 'This account can only be accessed from the registered device.' });
             }
 
-            // Also make sure no OTHER student account is using this deviceId
             const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
             if (otherUser) {
                 return res.status(403).json({ error: 'This device is already registered to another student.' });
