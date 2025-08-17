@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const path = require('path');
 const cors = require('cors');
-const ipRangeCheck = require("ip-range-check");
+//const ipRangeCheck = require("ip-range-check");
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'mysupersecret';
@@ -186,6 +186,7 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
 
 
 
