@@ -1,4 +1,4 @@
-// server.js (with Admin Reset All Option)
+// server.js (with Admin Reset All Option & Fixed Device Lock)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -68,17 +68,18 @@ app.post('/api/login', async (req, res) => {
     if (user.role !== 'admin') {
       if (!deviceId) return res.status(400).json({ error: 'Device ID required for students' });
 
+      // 1. Check if another student already has this deviceId
+      const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
+      if (otherUser) {
+        return res.status(403).json({ error: `This device is already registered to another student (${otherUser.usn}).` });
+      }
+
+      // 2. If student has no deviceId yet → assign it
       if (!user.deviceId) {
         user.deviceId = deviceId;
         await user.save();
       } else if (user.deviceId !== deviceId) {
         return res.status(403).json({ error: 'This account can only be accessed from the registered device.' });
-      }
-
-      // Prevent same device used by another student
-      const otherUser = await User.findOne({ usn: { $ne: usn }, deviceId });
-      if (otherUser) {
-        return res.status(403).json({ error: 'This device is already registered to another student.' });
       }
     }
 
@@ -120,7 +121,16 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 
 // --- Attendance marking (with IP restriction + one per day) ---
 app.post('/api/attendance', authMiddleware, async (req, res) => {
-  const allowedIPs = ['49.37.250.172', '117.230.5.171', '152.57.115.200','152.57.74.171', '127.0.0.1','117.230.0.0/16','152.57.0.0/16', '::1'];
+  const allowedIPs = [
+    '49.37.250.172',
+    '117.230.5.171',
+    '152.57.115.200',
+    '152.57.74.171',
+    '127.0.0.1',
+    '117.230.0.0/16',
+    '152.57.0.0/16',
+    '::1'
+  ];
 
   let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
   clientIP = clientIP.replace('::ffff:', '').trim();
@@ -175,5 +185,3 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-
