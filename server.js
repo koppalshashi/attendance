@@ -1,4 +1,4 @@
-// server.js (Render + Local Friendly + Device Lock with Admin Exemption)
+// server.js (with Admin Reset All Option)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -31,8 +31,9 @@ const userSchema = new mongoose.Schema({
 
 const attendanceSchema = new mongoose.Schema({
   usn: String,
-  date: { type: Date, default: Date.now },
-  status: String
+  date: { type: String }, // YYYY-MM-DD string
+  status: String,
+  markedBy: { type: String, default: 'student' }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -132,13 +133,12 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me) return res.status(404).json({ error: 'User not found' });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
 
-  const existing = await Attendance.findOne({ usn: me.usn, date: { $gte: today } });
+  const existing = await Attendance.findOne({ usn: me.usn, date: today });
   if (existing) return res.json({ message: 'Attendance already marked today' });
 
-  await Attendance.create({ usn: me.usn, status: req.body.status });
+  await Attendance.create({ usn: me.usn, date: today, status: req.body.status, markedBy: "student" });
   res.json({ message: `Attendance marked as ${req.body.status}` });
 });
 
@@ -147,14 +147,31 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date().toISOString().split("T")[0];
 
-  const list = await Attendance.find({ date: { $gte: today }, status: 'present' });
+  const list = await Attendance.find({ date: today, status: 'present' });
   res.json({ total: list.length, usns: list.map(x => x.usn) });
+});
+
+// --- Admin: reset ALL attendance + device IDs ---
+app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  try {
+    // Clear all attendance records
+    await Attendance.deleteMany({});
+
+    // Reset all student device IDs
+    await User.updateMany({ role: 'student' }, { $set: { deviceId: null } });
+
+    res.json({ message: '✅ All attendance records and student device IDs have been cleared.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error during reset' });
+  }
 });
 
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
