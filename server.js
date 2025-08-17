@@ -125,7 +125,7 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
     '49.37.250.172',
     '117.230.5.171',
     '152.57.115.200',
-    '152.57.74.171',
+    '152.57.74.97',
     '127.0.0.1',
     '117.230.0.0/16',
     '152.57.0.0/16',
@@ -185,3 +185,4 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
