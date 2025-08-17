@@ -1,81 +1,115 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Attendance</title>
-    <link rel="stylesheet" href="/css/attendance.css">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding-top: 40px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 { margin-top: 0; }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 12px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button.reset {
+            background: #e74c3c;
+            color: white;
+        }
+        button.reset:hover {
+            background: #c0392b;
+        }
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+        ul {
+            text-align: left;
+            padding-left: 20px;
+        }
+        li { margin: 3px 0; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h2>Mark Attendance</h2>
+        <h2>Today's Present Students</h2>
+        <p>Total Present: <span id="total">0</span></p>
+        <ul id="list"></ul>
 
-        <!-- Student info will be displayed here -->
-        <div id="student-info" class="student-info"></div>
-
-        <!-- Attendance buttons -->
-        <div class="attendance-buttons">
-            <button onclick="mark('present')">Present</button>
-            <button onclick="mark('absent')">Absent</button>
-        </div>
+        <!-- Reset All Attendance -->
+        <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+        <p class="message" id="msg"></p>
     </div>
 
     <script>
-        // Function to mark attendance
-        async function mark(status) {
+        async function load() {
             try {
-                const res = await fetch('/api/attendance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    },
-                    body: JSON.stringify({ status })
+                const res = await fetch('/api/admin/today', {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 });
-
                 const data = await res.json();
+                
+                document.getElementById('total').innerText = data.total || 0;
+                const list = document.getElementById('list');
+                list.innerHTML = '';
 
-                if (res.ok) {
-                    alert("✅ " + data.message);
+                if (data.usns && data.usns.length > 0) {
+                    data.usns.forEach(usn => {
+                        const li = document.createElement('li');
+                        li.textContent = usn;
+                        list.appendChild(li);
+                    });
                 } else {
-                    alert("❌ " + (data.message || "Error marking attendance"));
+                    list.innerHTML = '<li>No attendance marked today.</li>';
                 }
             } catch (err) {
                 console.error(err);
-                alert("⚠️ Server error while marking attendance");
+                document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
             }
         }
 
-        // Load student info on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // Redirect to login if not logged in
-                window.location.href = '/login.html';
-                return;
-            }
+        async function resetAll() {
+            if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
 
             try {
-                const res = await fetch('/api/me', {
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const res = await fetch('/api/admin/reset-all', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
                 });
-                const data = await res.json();
 
-                if (res.ok) {
-                    // Show student details
-                    const infoDiv = document.getElementById('student-info');
-                    infoDiv.innerHTML = `
-                        <h3>Welcome, ${data.name}</h3>
-                        <p>USN: ${data.usn}</p>
-                    `;
-                } else {
-                    alert("⚠️ Session expired, please login again");
-                    window.location.href = '/login.html';
-                }
+                const data = await res.json();
+                document.getElementById('msg').innerText = data.message || data.error;
+                load(); // refresh the list after reset
             } catch (err) {
                 console.error(err);
-                alert("⚠️ Unable to fetch student info");
+                document.getElementById('msg').innerText = "❌ Server error";
             }
-        });
+        }
+
+        load();
     </script>
 </body>
 </html>
