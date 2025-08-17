@@ -1,17 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Attendance</title>
     <link rel="stylesheet" href="/css/attendance.css">
 </head>
 <body>
     <div class="container">
         <h2>Mark Attendance</h2>
+
+        <!-- Student info will be displayed here -->
         <div id="student-info" class="student-info"></div>
 
-        <!-- Attendance Buttons -->
-        <button onclick="mark('present')">Present</button>
-        <button onclick="mark('absent')">Absent</button>
+        <!-- Attendance buttons -->
+        <div class="attendance-buttons">
+            <button onclick="mark('present')">Present</button>
+            <button onclick="mark('absent')">Absent</button>
+        </div>
     </div>
 
     <script>
@@ -26,11 +31,17 @@
                     },
                     body: JSON.stringify({ status })
                 });
+
                 const data = await res.json();
-                alert(data.message || "Attendance updated");
+
+                if (res.ok) {
+                    alert("✅ " + data.message);
+                } else {
+                    alert("❌ " + (data.message || "Error marking attendance"));
+                }
             } catch (err) {
                 console.error(err);
-                alert("Error marking attendance");
+                alert("⚠️ Server error while marking attendance");
             }
         }
 
@@ -38,6 +49,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             const token = localStorage.getItem('token');
             if (!token) {
+                // Redirect to login if not logged in
                 window.location.href = '/login.html';
                 return;
             }
@@ -48,16 +60,20 @@
                 });
                 const data = await res.json();
 
-                // Show student details safely
-                const infoDiv = document.getElementById('student-info');
-                if (data && data.name && data.usn) {
-                    infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
+                if (res.ok) {
+                    // Show student details
+                    const infoDiv = document.getElementById('student-info');
+                    infoDiv.innerHTML = `
+                        <h3>Welcome, ${data.name}</h3>
+                        <p>USN: ${data.usn}</p>
+                    `;
                 } else {
-                    infoDiv.innerHTML = `<h3>Welcome, Student</h3><p>(Details not found)</p>`;
+                    alert("⚠️ Session expired, please login again");
+                    window.location.href = '/login.html';
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('student-info').innerHTML = `<p>Error fetching student details</p>`;
+                alert("⚠️ Unable to fetch student info");
             }
         });
     </script>
