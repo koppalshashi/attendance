@@ -9,43 +9,57 @@
         <h2>Mark Attendance</h2>
         <div id="student-info" class="student-info"></div>
 
-<!-- Your existing Present / Absent buttons here -->
-
+        <!-- Attendance Buttons -->
         <button onclick="mark('present')">Present</button>
         <button onclick="mark('absent')">Absent</button>
     </div>
 
     <script>
+        // Function to mark attendance
         async function mark(status) {
-            const res = await fetch('/api/attendance', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                },
-                body: JSON.stringify({ status })
-            });
-            const data = await res.json();
-            alert(data.message);
+            try {
+                const res = await fetch('/api/attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    },
+                    body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                alert(data.message || "Attendance updated");
+            } catch (err) {
+                console.error(err);
+                alert("Error marking attendance");
+            }
         }
+
+        // Load student info on page load
         document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
-    }
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
 
-    // Fetch student info
-    const res = await fetch('/api/me', {
-        headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
+            try {
+                const res = await fetch('/api/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
 
-    // Show student details
-    const infoDiv = document.getElementById('student-info');
-    infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
-});
-
+                // Show student details safely
+                const infoDiv = document.getElementById('student-info');
+                if (data && data.name && data.usn) {
+                    infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
+                } else {
+                    infoDiv.innerHTML = `<h3>Welcome, Student</h3><p>(Details not found)</p>`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('student-info').innerHTML = `<p>Error fetching student details</p>`;
+            }
+        });
     </script>
 </body>
 </html>
