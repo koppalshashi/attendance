@@ -122,7 +122,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 // --- Attendance marking (with IP restriction + one per day) ---
 app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = [
-    '49.37.250.172',
+    '49.37.250.175',
     '117.230.5.171',
     '152.57.115.200',
     '152.57.74.97',
@@ -185,4 +185,5 @@ app.post('/api/admin/reset-all', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
 
