@@ -119,7 +119,7 @@ app.get('/api/me', authMiddleware, async (req, res) => {
 
 // --- Attendance marking (with IP restriction + one per day) ---
 app.post('/api/attendance', authMiddleware, async (req, res) => {
-  const allowedIPs = ['49.37.250.52', '117.230.5.171', '152.57.115.200', '127.0.0.1', '::1'];
+  const allowedIPs = ['49.37.250.172', '117.230.5.171', '152.57.115.200', '127.0.0.1', '::1'];
 
   let clientIP = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || '';
   clientIP = clientIP.replace('::ffff:', '').trim();
@@ -157,3 +157,4 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
