@@ -184,11 +184,11 @@ async function load() {
                 list.appendChild(li);
             });
         } else {
-            list.innerHTML = '<li>No attendance marked today.</li>';
+            list.innerHTML = 'No attendance marked today.';
         }
     } catch (err) {
         console.error(err);
-        document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
+        document.getElementById('list').innerHTML = '❌ Error loading data';
     }
 }
 
@@ -239,3 +239,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
