@@ -122,7 +122,7 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = [
     '49.37.250.175', '117.230.5.171', '152.57.115.200', '152.57.74.97',
     '127.0.0.1', '::1',
-    '117.230.0.0/16', '152.57.0.0/16', '49.37.0.0/16'
+    '117.230.0.0/16', '152.57.0.0/16', '49.37.0.0/16','106.193.0.0/16'
   ];
 
   let clientIP = req.ip?.replace('::ffff:', '') || '';
@@ -202,3 +202,4 @@ app.post('/api/admin/send-email', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
