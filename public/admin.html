@@ -2,17 +2,20 @@
 <html>
 <head>
     <title>Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            height: 100vh;
-            margin: 0;
-            padding-top: 40px;
-        }
+        /* Base Styles */
+       body {
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
+    display: flex;
+    justify-content: center; /* horizontal center */
+    align-items: center;     /* vertical center */
+    min-height: 100vh;       /* full viewport height */
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
         .container {
             background: white;
             padding: 20px;
@@ -20,32 +23,74 @@
             box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 450px;
+            box-sizing: border-box;
         }
-        h2 { margin-top: 0; }
+
+        h2 { 
+            margin-top: 0; 
+            text-align: center;
+        }
+
+        p { text-align: center; }
+
+        ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+
+        li { margin: 3px 0; }
+
+        input[type=email] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
         button {
             display: block;
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 12px 0;
             border: none;
             border-radius: 5px;
             font-size: 1rem;
             cursor: pointer;
+            transition: background 0.3s ease;
         }
+
         button.reset { background: #e74c3c; color: white; }
         button.reset:hover { background: #c0392b; }
+
         button.send { background: #3498db; color: white; }
         button.send:hover { background: #2980b9; }
-        .message { margin-top: 10px; font-weight: bold; color: #333; }
-        ul { text-align: left; padding-left: 20px; }
-        li { margin: 3px 0; }
-        input[type=email] {
-            width: 100%;
-            padding: 8px;
-            margin: 8px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
+
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            word-break: break-word;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 500px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+            }
+            button, input[type=email] {
+                font-size: 0.9rem;
+                padding: 10px;
+            }
+            h2 {
+                font-size: 1.4rem;
+            }
         }
     </style>
 </head>
