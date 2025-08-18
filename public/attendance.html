@@ -1,158 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Attendance</title>
-    <style>
-        /* General page styling */
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #6dd5ed, #2193b0);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #333;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance</title>
+<style>
+    /* General page styling */
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #6dd5ed, #2193b0);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #333;
+        box-sizing: border-box;
+    }
 
+    .container {
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+        text-align: center;
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+
+    h2 {
+        margin-bottom: 20px;
+        color: #2193b0;
+    }
+
+    .student-info {
+        background: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 16px;
+        text-align: left;
+        word-break: break-word;
+    }
+
+    .student-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+        font-size: 1.1rem;
+    }
+
+    .attendance-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    button {
+        flex: 1 1 48%; /* take almost half width, wrap if needed */
+        padding: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #fff;
+    }
+
+    button.present {
+        background: #4CAF50;
+    }
+
+    button.present:hover {
+        background: #45a049;
+        transform: scale(1.05);
+    }
+
+    button.absent {
+        background: #f44336;
+    }
+
+    button.absent:hover {
+        background: #d32f2f;
+        transform: scale(1.05);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 360px) {
         .container {
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-            text-align: center;
-            width: 350px;
-            max-width: 90%;
-        }
-
-        h2 {
-            margin-bottom: 20px;
-            color: #2193b0;
-        }
-
-        .student-info {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            text-align: left;
-        }
-
-        .student-info h3 {
-            margin: 0;
-            color: #333;
-        }
-
-        .attendance-buttons {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
+            padding: 20px;
         }
 
         button {
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #fff;
+            font-size: 14px;
+            padding: 10px;
         }
 
-        button:nth-child(1) {
-            background: #4CAF50; /* Green for Present */
+        .student-info {
+            font-size: 14px;
         }
-
-        button:nth-child(1):hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
-
-        button:nth-child(2) {
-            background: #f44336; /* Red for Absent */
-        }
-
-        button:nth-child(2):hover {
-            background: #d32f2f;
-            transform: scale(1.05);
-        }
-    </style>
+    }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h2>Mark Attendance</h2>
+<div class="container">
+    <h2>Mark Attendance</h2>
+    <div id="student-info" class="student-info"></div>
 
-        <!-- Student info will be displayed here -->
-        <div id="student-info" class="student-info"></div>
-
-        <!-- Attendance buttons -->
-        <div class="attendance-buttons">
-            <button onclick="mark('present')">Present</button>
-            <button onclick="mark('absent')">Absent</button>
-        </div>
+    <div class="attendance-buttons">
+        <button class="present" onclick="mark('present')">Present</button>
+        <button class="absent" onclick="mark('absent')">Absent</button>
     </div>
+</div>
 
-    <script>
-        // Function to mark attendance
-        async function mark(status) {
-            try {
-                const res = await fetch('/api/attendance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
-                    },
-                    body: JSON.stringify({ status })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    alert("✅ " + data.message);
-                } else {
-                    alert("❌ " + (data.message || "Error marking attendance"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("⚠️ Server error while marking attendance");
-            }
-        }
-
-        // Load student info on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // Redirect to login if not logged in
-                window.location.href = '/login.html';
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/me', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
-
-                if (res.ok) {
-                    // Show student details
-                    const infoDiv = document.getElementById('student-info');
-                    infoDiv.innerHTML = `
-                        <h3>Welcome, ${data.name}</h3>
-                        <p>USN: ${data.usn}</p>
-                    `;
-                } else {
-                    alert("⚠️ Session expired, please login again");
-                    window.location.href = '/login.html';
-                }
-            } catch (err) {
-                console.error(err);
-                alert("⚠️ Unable to fetch student info");
-            }
+<script>
+async function mark(status) {
+    try {
+        const res = await fetch('/api/attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({ status })
         });
-    </script>
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("✅ " + data.message);
+        } else {
+            alert("❌ " + (data.message || "Error marking attendance"));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("⚠️ Server error while marking attendance");
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/me', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            const infoDiv = document.getElementById('student-info');
+            infoDiv.innerHTML = `
+                <h3>Welcome, ${data.name}</h3>
+                <p>USN: ${data.usn}</p>
+            `;
+        } else {
+            alert("⚠️ Session expired, please login again");
+            window.location.href = '/login.html';
+        }
+    } catch (err) {
+        console.error(err);
+        alert("⚠️ Unable to fetch student info");
+    }
+});
+</script>
 </body>
 </html>
