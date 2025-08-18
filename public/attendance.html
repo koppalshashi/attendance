@@ -4,170 +4,205 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Attendance</title>
+<link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700" rel="stylesheet">
 <style>
-    /* General page styling */
-    body {
-        font-family: Arial, sans-serif;
-        background: linear-gradient(135deg, #6dd5ed, #2193b0);
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        color: #333;
-        box-sizing: border-box;
-    }
+  body {
+    font-family: "Nunito", sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background-image: url('https://images.unsplash.com/photo-1538137524007-21e48fa42f3f?auto=format&fit=crop&w=1834&q=80');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+  }
 
-    .container {
-        background: #fff;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-        text-align: center;
-        width: 100%;
-        max-width: 400px;
-        box-sizing: border-box;
-    }
+  .scroll-down {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 32px;
+    font-weight: 800;
+    text-align: center;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+  }
 
-    h2 {
-        margin-bottom: 20px;
-        color: #2193b0;
-    }
+  .container {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    padding: 40px 30px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(100px) scale(0.5);
+    transition: all 0.6s cubic-bezier(0.445, 0.05, 0, 1);
+  }
 
-    .student-info {
-        background: #f9f9f9;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        font-size: 16px;
-        text-align: left;
-        word-break: break-word;
-    }
+  .container.is-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 
-    .student-info h3 {
-        margin: 0 0 5px 0;
-        color: #333;
-        font-size: 1.1rem;
-    }
+  h2 {
+    color: #55311c;
+    font-weight: 600;
+    margin-bottom: 25px;
+  }
 
-    .attendance-buttons {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
+  .student-info {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    text-align: left;
+  }
 
-    button {
-        flex: 1 1 48%; /* take almost half width, wrap if needed */
-        padding: 12px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #fff;
-    }
+  .student-info h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+    color: #55311c;
+  }
 
-    button.present {
-        background: #4CAF50;
-    }
+  .student-info p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+  }
 
-    button.present:hover {
-        background: #45a049;
-        transform: scale(1.05);
-    }
+  .attendance-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
 
-    button.absent {
-        background: #f44336;
-    }
+  .attendance-buttons button {
+    flex: 1 1 48%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
 
-    button.absent:hover {
-        background: #d32f2f;
-        transform: scale(1.05);
-    }
+  .attendance-buttons button.present {
+    background: #4CAF50;
+  }
+  .attendance-buttons button.present:hover {
+    background: #45a049;
+    transform: scale(1.05);
+  }
 
-    /* Responsive adjustments */
-    @media (max-width: 360px) {
-        .container {
-            padding: 20px;
-        }
+  .attendance-buttons button.absent {
+    background: #f44336;
+  }
+  .attendance-buttons button.absent:hover {
+    background: #d32f2f;
+    transform: scale(1.05);
+  }
 
-        button {
-            font-size: 14px;
-            padding: 10px;
-        }
-
-        .student-info {
-            font-size: 14px;
-        }
-    }
+  @media(max-width: 400px) {
+    .container { padding: 30px 20px; }
+    .attendance-buttons button { font-size: 14px; padding: 12px; }
+    .student-info { font-size: 14px; padding: 15px; }
+  }
 </style>
 </head>
 <body>
-<div class="container">
-    <h2>Mark Attendance</h2>
-    <div id="student-info" class="student-info"></div>
 
-    <div class="attendance-buttons">
-        <button class="present" onclick="mark('present')">Present</button>
-        <button class="absent" onclick="mark('absent')">Absent</button>
-    </div>
+<div class="scroll-down">SCROLL DOWN</div>
+
+<div class="container" id="attendance-container">
+  <h2>Mark Attendance</h2>
+  <div id="student-info" class="student-info"></div>
+
+  <div class="attendance-buttons">
+    <button class="present" onclick="mark('present')">Present</button>
+    <button class="absent" onclick="mark('absent')">Absent</button>
+  </div>
 </div>
 
 <script>
+const container = document.getElementById('attendance-container');
+const scrollDown = document.querySelector('.scroll-down');
+
+let isOpened = false;
+
+const openContainer = () => {
+  container.classList.add('is-open');
+  scrollDown.style.opacity = '0';
+};
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > window.innerHeight / 4 && !isOpened) {
+    isOpened = true;
+    openContainer();
+  }
+});
+
+// Automatically open after 1s if user hasn't scrolled
+setTimeout(() => {
+  if (!isOpened) {
+    isOpened = true;
+    openContainer();
+  }
+}, 1000);
+
 async function mark(status) {
-    try {
-        const res = await fetch('/api/attendance', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            },
-            body: JSON.stringify({ status })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            alert("✅ " + data.message);
-        } else {
-            alert("❌ " + (data.message || "Error marking attendance"));
-        }
-    } catch (err) {
-        console.error(err);
-        alert("⚠️ Server error while marking attendance");
+  try {
+    const res = await fetch('/api/attendance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert("✅ " + data.message);
+    } else {
+      alert("❌ " + (data.message || "Error marking attendance"));
     }
+  } catch (err) {
+    console.error(err);
+    alert("⚠️ Server error while marking attendance");
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = '/login.html';
+    return;
+  }
+  try {
+    const res = await fetch('/api/me', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      const infoDiv = document.getElementById('student-info');
+      infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
+    } else {
+      alert("⚠️ Session expired, please login again");
+      window.location.href = '/login.html';
     }
-
-    try {
-        const res = await fetch('/api/me', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            const infoDiv = document.getElementById('student-info');
-            infoDiv.innerHTML = `
-                <h3>Welcome, ${data.name}</h3>
-                <p>USN: ${data.usn}</p>
-            `;
-        } else {
-            alert("⚠️ Session expired, please login again");
-            window.location.href = '/login.html';
-        }
-    } catch (err) {
-        console.error(err);
-        alert("⚠️ Unable to fetch student info");
-    }
+  } catch (err) {
+    console.error(err);
+    alert("⚠️ Unable to fetch student info");
+  }
 });
 </script>
 </body>
