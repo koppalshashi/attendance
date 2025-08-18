@@ -117,12 +117,56 @@
     .attendance-buttons button { font-size: 14px; padding: 12px; }
     .student-info { font-size: 14px; padding: 15px; }
   }
+
+  /* 🔹 Circular Logout Button with Text Below */
+.logout-wrapper {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+}
+
+.logout-btn {
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.logout-btn:hover {
+    background: #d68910;
+    transform: scale(1.1);
+}
+
+.logout-text {
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
 </style>
 </head>
 <body>
 
 <div class="scroll-down">SCROLL DOWN</div>
-
+<div class="logout-wrapper">
+  <button class="logout-btn" onclick="logout()">🚪</button>
+  <span class="logout-text">Logout</span>
+</div>
 <div class="container" id="attendance-container">
   <h2>Mark Attendance</h2>
   <div id="student-info" class="student-info"></div>
@@ -204,6 +248,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     alert("⚠️ Unable to fetch student info");
   }
 });
+
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = "login.html"; // change this path if needed
+}
 </script>
 </body>
 </html>
