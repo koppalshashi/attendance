@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-// server.js (with Admin Reset, Device Lock, IP Range & Email)
 const express = require('express');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -64,6 +63,33 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+// --- Register new user ---
+app.post('/api/register', async (req, res) => {
+  const { name, usn, password, role } = req.body;
+
+  if (!name || !usn || !password) {
+    return res.status(400).json({ error: "All fields required" });
+  }
+
+  try {
+    const existing = await User.findOne({ usn });
+    if (existing) return res.status(400).json({ error: "USN already registered" });
+
+    const newUser = new User({
+      name,
+      usn,
+      password, // ⚠️ stored as plain text for now
+      role: role || 'student'
+    });
+
+    await newUser.save();
+    res.json({ message: "✅ Registration successful, please login" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // --- Login with Device Lock ---
 app.post('/api/login', async (req, res) => {
   const { usn, password, deviceId } = req.body;
@@ -122,7 +148,7 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = [
     '49.37.250.175', '117.230.5.171', '152.57.115.200', '152.57.74.97',
     '127.0.0.1', '::1',
-    '117.230.0.0/16', '152.57.0.0/16', '49.37.0.0/16','106.193.0.0/16'
+    '117.230.0.0/16', '152.57.0.0/16', '49.37.0.0/16'
   ];
 
   let clientIP = req.ip?.replace('::ffff:', '') || '';
@@ -151,7 +177,10 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 
   const today = new Date().toISOString().split("T")[0];
   const list = await Attendance.find({ date: today, status: 'present' });
-  res.json({ total: list.length, usns: list.map(x => x.usn) });
+
+  const sortedUsns = list.map(x => x.usn).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  res.json({ total: sortedUsns.length, usns: sortedUsns });
 });
 
 // --- Admin: reset ALL attendance + device IDs ---
@@ -180,14 +209,44 @@ app.post('/api/admin/send-email', authMiddleware, async (req, res) => {
   const today = new Date().toISOString().split("T")[0];
   const list = await Attendance.find({ date: today, status: 'present' });
 
-  const total = list.length;
-  const usns = list.map(x => x.usn).join(', ') || 'No students present today';
+  const sortedUsns = list.map(x => x.usn).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  const total = sortedUsns.length;
+
+  // ✅ Compact rows (2 columns of USNs per row)
+  let rows = "";
+  for (let i = 0; i < sortedUsns.length; i += 2) {
+    rows += `<tr>
+      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${i + 1}. ${sortedUsns[i]}</td>
+      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${sortedUsns[i + 1] ? i + 2 + ". " + sortedUsns[i + 1] : ""}</td>
+    </tr>`;
+  }
+
+  const message = `
+    <div style="font-family: Arial, sans-serif; padding: 15px; background: #f9fafb;">
+      <h2 style="color: #2E86C1; text-align: center;">📘 Attendance Report</h2>
+      <p><b>Date:</b> ${today}</p>
+      <p style="color: #117A65;"><b>Total Present:</b> ${total}</p>
+      <table style="border-collapse: collapse; width: 80%; margin: auto; font-size:14px;">
+        <thead>
+          <tr style="background: #2E86C1; color: white;">
+            <th style="padding:6px; border:1px solid #ddd;">USN ROW 1</th>
+            <th style="padding:6px; border:1px solid #ddd;">USN ROW 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+      <p style="margin-top:15px; color:#7f8c8d; font-size:12px; text-align:center;">✅ Automated attendance report</p>
+    </div>
+  `;
 
   const mailOptions = {
     from: process.env.EMAIL_USER || 'youremail@gmail.com',
     to: email,
     subject: `Today's Attendance - ${today}`,
-    text: `📅 Attendance Report\nTotal Present: ${total}\nUSNs: ${usns}`
+    html: message
   };
 
   try {
@@ -202,4 +261,3 @@ app.post('/api/admin/send-email', authMiddleware, async (req, res) => {
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
