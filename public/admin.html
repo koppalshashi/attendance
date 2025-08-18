@@ -19,6 +19,53 @@ body {
     overflow-x: hidden;
 }
 
+/* 🔹 Circular Logout Button with Text Below */
+.logout-wrapper {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+}
+
+.logout-btn {
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 52px;
+    height: 52px;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.logout-btn:hover {
+    background: #d68910;
+    transform: scale(1.1);
+}
+
+.logout-text {
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    opacity: 0;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
+
+/* Show text on hover */
+.logout-wrapper:hover .logout-text {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .scroll-down {
     position: fixed;
     top: 50%;
@@ -123,17 +170,25 @@ button.send:hover {
     .container { padding: 30px 20px; }
     button, input[type=email] { font-size: 0.9rem; padding: 12px; }
     h2 { font-size: 1.4rem; }
+    .logout-btn { width: 36px; height: 36px; font-size: 18px; }
+    .logout-text { font-size: 12px; }
 }
 </style>
 </head>
 <body>
 
-<div class="scroll-down">SCROLL DOWN</div>
+<!-- 🔹 Logout Button with Text -->
+<div class="logout-wrapper">
+  <button class="logout-btn" onclick="logout()">🚪</button>
+  <span class="logout-text">Logout</span>
+</div>
+
+
 
 <div class="container" id="admin-container">
     <h2>Today's Present Students</h2>
     <p>Total Present: <span id="total">0</span></p>
-    <p id="list"></p>
+    <ul id="list"></ul>
 
     <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
 
@@ -231,6 +286,12 @@ async function sendEmail() {
     }
 }
 
+// 🔹 Logout Function
+function logout() {
+    localStorage.removeItem('token');
+    window.location.href = "login.html"; // change this path if needed
+}
+
 // Load data on page load
 document.addEventListener('DOMContentLoaded', () => {
     load();
@@ -239,5 +300,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-
-
