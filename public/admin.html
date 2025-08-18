@@ -1,184 +1,241 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Base Styles */
-       body {
-    font-family: Arial, sans-serif;
-    background-color: #f2f2f2;
-    display: flex;
-    justify-content: center; /* horizontal center */
-    align-items: center;     /* vertical center */
-    min-height: 100vh;       /* full viewport height */
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700" rel="stylesheet">
+<style>
+body {
+    font-family: "Nunito", sans-serif;
     margin: 0;
-    padding: 20px;
-    box-sizing: border-box;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1834&q=80');
+    background-size: cover;
+    background-position: center;
+    overflow-x: hidden;
 }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 450px;
-            box-sizing: border-box;
-        }
 
-        h2 { 
-            margin-top: 0; 
-            text-align: center;
-        }
+.scroll-down {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 32px;
+    font-weight: 800;
+    text-align: center;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
 
-        p { text-align: center; }
+.container {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    padding: 40px 30px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    text-align: center;
+    opacity: 0;
+    transform: translateY(100px) scale(0.5);
+    transition: all 0.6s cubic-bezier(0.445, 0.05, 0, 1);
+}
 
-        ul {
-            list-style-type: disc;
-            padding-left: 20px;
-            margin: 10px 0;
-        }
+.container.is-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
 
-        li { margin: 3px 0; }
+h2 { 
+    margin-top: 0; 
+    color: #55311c;
+}
 
-        input[type=email] {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
+p { text-align: center; }
 
-        button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 12px 0;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
+ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin: 10px 0;
+}
 
-        button.reset { background: #e74c3c; color: white; }
-        button.reset:hover { background: #c0392b; }
+li { margin: 3px 0; }
 
-        button.send { background: #3498db; color: white; }
-        button.send:hover { background: #2980b9; }
+input[type=email] {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 30px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+input[type=email]:focus {
+    border-color: #8c7569;
+    outline: none;
+}
 
-        .message {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #333;
-            text-align: center;
-            word-break: break-word;
-        }
+button {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin: 12px 0;
+    border: none;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
 
-        /* Responsive Adjustments */
-        @media (max-width: 500px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
-            button, input[type=email] {
-                font-size: 0.9rem;
-                padding: 10px;
-            }
-            h2 {
-                font-size: 1.4rem;
-            }
-        }
-    </style>
+button.reset { 
+    background: #e74c3c; 
+    color: white; 
+}
+button.reset:hover { 
+    background: #c0392b; 
+    transform: scale(1.05);
+}
+
+button.send { 
+    background: #3498db; 
+    color: white; 
+}
+button.send:hover { 
+    background: #2980b9; 
+    transform: scale(1.05);
+}
+
+.message {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    word-break: break-word;
+}
+
+@media (max-width: 500px) {
+    .container { padding: 30px 20px; }
+    button, input[type=email] { font-size: 0.9rem; padding: 12px; }
+    h2 { font-size: 1.4rem; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h2>Today's Present Students</h2>
-        <p>Total Present: <span id="total">0</span></p>
-        <ul id="list"></ul>
 
-        <!-- Reset All Attendance -->
-        <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+<div class="scroll-down">SCROLL DOWN</div>
 
-        <!-- Send Attendance via Email -->
-        <input type="email" id="email" placeholder="Enter faculty email" />
-        <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
+<div class="container" id="admin-container">
+    <h2>Today's Present Students</h2>
+    <p>Total Present: <span id="total">0</span></p>
+    <ul id="list"></ul>
 
-        <p class="message" id="msg"></p>
-    </div>
+    <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
 
-    <script>
-        async function load() {
-            try {
-                const res = await fetch('/api/admin/today', {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                });
-                const data = await res.json();
+    <input type="email" id="email" placeholder="Enter faculty email" />
+    <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
 
-                document.getElementById('total').innerText = data.total || 0;
-                const list = document.getElementById('list');
-                list.innerHTML = '';
+    <p class="message" id="msg"></p>
+</div>
 
-                if (data.usns && data.usns.length > 0) {
-                    data.usns.forEach(usn => {
-                        const li = document.createElement('li');
-                        li.textContent = usn;
-                        list.appendChild(li);
-                    });
-                } else {
-                    list.innerHTML = '<li>No attendance marked today.</li>';
-                }
-            } catch (err) {
-                console.error(err);
-                document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
-            }
+<script>
+const container = document.getElementById('admin-container');
+const scrollDown = document.querySelector('.scroll-down');
+let isOpened = false;
+
+const openContainer = () => {
+    container.classList.add('is-open');
+    scrollDown.style.opacity = '0';
+};
+
+window.addEventListener('scroll', () => {
+    if (window.scrollY > window.innerHeight / 4 && !isOpened) {
+        isOpened = true;
+        openContainer();
+    }
+});
+
+// Auto open after 1s
+setTimeout(() => {
+    if (!isOpened) {
+        isOpened = true;
+        openContainer();
+    }
+}, 1000);
+
+async function load() {
+    try {
+        const res = await fetch('/api/admin/today', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        document.getElementById('total').innerText = data.total || 0;
+        const list = document.getElementById('list');
+        list.innerHTML = '';
+        if (data.usns && data.usns.length > 0) {
+            data.usns.forEach(usn => {
+                const li = document.createElement('li');
+                li.textContent = usn;
+                list.appendChild(li);
+            });
+        } else {
+            list.innerHTML = '<li>No attendance marked today.</li>';
         }
+    } catch (err) {
+        console.error(err);
+        document.getElementById('list').innerHTML = '<li>❌ Error loading data</li>';
+    }
+}
 
-        async function resetAll() {
-            if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
-
-            try {
-                const res = await fetch('/api/admin/reset-all', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                });
-                const data = await res.json();
-                document.getElementById('msg').innerText = data.message || data.error;
-                load(); // refresh after reset
-            } catch (err) {
-                console.error(err);
-                document.getElementById('msg').innerText = "❌ Server error";
-            }
-        }
-
-        async function sendEmail() {
-            const email = document.getElementById('email').value.trim();
-            if (!email) {
-                alert("Please enter a valid email");
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/admin/send-email', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json();
-                document.getElementById('msg').innerText = data.message || data.error;
-            } catch (err) {
-                console.error(err);
-                document.getElementById('msg').innerText = "❌ Failed to send email";
-            }
-        }
-
+async function resetAll() {
+    if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
+    try {
+        const res = await fetch('/api/admin/reset-all', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        const data = await res.json();
+        document.getElementById('msg').innerText = data.message || data.error;
         load();
-    </script>
+    } catch (err) {
+        console.error(err);
+        document.getElementById('msg').innerText = "❌ Server error";
+    }
+}
+
+async function sendEmail() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+        alert("Please enter a valid email");
+        return;
+    }
+    try {
+        const res = await fetch('/api/admin/send-email', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        document.getElementById('msg').innerText = data.message || data.error;
+    } catch (err) {
+        console.error(err);
+        document.getElementById('msg').innerText = "❌ Failed to send email";
+    }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', () => {
+    load();
+});
+</script>
+
 </body>
 </html>
