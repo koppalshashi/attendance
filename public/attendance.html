@@ -119,45 +119,45 @@
   }
 
   /* 🔹 Circular Logout Button with Text Below */
-.logout-wrapper {
-    position: fixed;
-    top: 18px;
-    right: 18px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 100;
-}
+  .logout-wrapper {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 100;
+  }
 
-.logout-btn {
-    background: #f39c12;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 52px;
-    height: 52px;
-    font-size: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-.logout-btn:hover {
-    background: #d68910;
-    transform: scale(1.1);
-}
+  .logout-btn {
+      background: #f39c12;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .logout-btn:hover {
+      background: #d68910;
+      transform: scale(1.1);
+  }
 
-.logout-text {
-    margin-top: 5px;
-    font-size: 14px;
-    font-weight: bold;
-    color: white;
-    opacity: 0;
-    transform: translateY(-5px);
-    transition: all 0.3s ease;
-}
+  .logout-text {
+      margin-top: 5px;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      opacity: 0;
+      transform: translateY(-5px);
+      transition: all 0.3s ease;
+  }
 </style>
 </head>
 <body>
@@ -203,22 +203,46 @@ setTimeout(() => {
   }
 }, 1000);
 
+// 🔐 GPS + IP attendance
 async function mark(status) {
   try {
-    const res = await fetch('/api/attendance', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + localStorage.getItem('token')
-      },
-      body: JSON.stringify({ status })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      alert("✅ " + data.message);
-    } else {
-      alert("❌ " + (data.message || "Error marking attendance"));
+    if (!navigator.geolocation) {
+      alert("⚠️ GPS not supported in your browser");
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({ status, latitude, longitude })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ " + (data.message || "Attendance marked"));
+      } else {
+        alert("❌ " + (data.error || data.message || "Error marking attendance"));
+      }
+    }, (err) => {
+      console.error(err);
+      if (err.code === 1) {
+        alert("⚠️ Location permission denied. Please allow location to mark attendance.");
+      } else if (err.code === 2) {
+        alert("⚠️ Location unavailable. Try again near a window or enable GPS.");
+      } else if (err.code === 3) {
+        alert("⚠️ Location request timed out. Try again.");
+      } else {
+        alert("⚠️ Please enable location services to mark attendance.");
+      }
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+
   } catch (err) {
     console.error(err);
     alert("⚠️ Server error while marking attendance");
@@ -250,8 +274,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function logout() {
-    localStorage.removeItem('token');
-    window.location.href = "login.html"; // change this path if needed
+  localStorage.removeItem('token');
+  window.location.href = "login.html"; // change this path if needed
 }
 </script>
 </body>
