@@ -19,7 +19,6 @@ body {
     overflow-x: hidden;
 }
 
-/* 🔹 Circular Logout Button with Text Below */
 .logout-wrapper {
     position: fixed;
     top: 18px;
@@ -45,39 +44,9 @@ body {
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
-.logout-btn:hover {
-    background: #d68910;
-    transform: scale(1.1);
-}
-
-.logout-text {
-    margin-top: 5px;
-    font-size: 14px;
-    font-weight: bold;
-    color: white;
-    opacity: 0;
-    transform: translateY(-5px);
-    transition: all 0.3s ease;
-}
-
-/* Show text on hover */
-.logout-wrapper:hover .logout-text {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.scroll-down {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-size: 32px;
-    font-weight: 800;
-    text-align: center;
-    transition: opacity 0.3s ease;
-    z-index: 10;
-}
+.logout-btn:hover { background: #d68910; transform: scale(1.1); }
+.logout-text { margin-top: 5px; font-size: 14px; font-weight: bold; color: white; opacity: 0; transform: translateY(-5px); transition: all 0.3s ease; }
+.logout-wrapper:hover .logout-text { opacity: 1; transform: translateY(0); }
 
 .container {
     background: rgba(255,255,255,0.95);
@@ -87,26 +56,13 @@ body {
     width: 90%;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     text-align: center;
-    opacity: 0;
-    transform: translateY(100px) scale(0.5);
-    transition: all 0.6s cubic-bezier(0.445, 0.05, 0, 1);
 }
 
-.container.is-open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-
-h2 { 
-    margin-top: 0; 
-    color: #55311c;
-}
-
-p { text-align: center; }
+h2 { margin-top: 0; color: #55311c; }
 
 .list-box {
-    max-height: 200px;       /* fixed height */
-    overflow-y: auto;        /* vertical scroll */
+    max-height: 200px;
+    overflow-y: auto;
     margin: 15px 0;
     padding: 10px;
     border: 1px solid #ccc;
@@ -114,45 +70,11 @@ p { text-align: center; }
     background: #f9f9f9;
 }
 
-/* Compact Badges */
-/* Scrollable List Box */
-.list-box {
-    max-height: 200px;       /* fixed height */
-    overflow-y: auto;        /* vertical scroll */
-    margin: 15px 0;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    background: #f9f9f9;
-}
+ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-start; }
+ul li { background: #3498db; color: white; padding: 7px 14px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 3px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease; }
+ul li:hover { transform: scale(1.05); background: #2980b9; }
 
-/* Compact Badges */
-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-wrap: wrap;      /* items wrap to next line */
-    gap: 5px;
-    justify-content: flex-start;
-}
-
-ul li {
-    background: #3498db;
-    color: white;
-    padding: 7px 14px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-    transition: transform 0.2s ease;
-}
-ul li:hover {
-    transform: scale(1.05);
-    background: #2980b9;
-}
-
-input[type=email] {
+input[type=email], input[type=number] {
     width: 100%;
     padding: 10px;
     margin: 8px 0;
@@ -161,10 +83,7 @@ input[type=email] {
     box-sizing: border-box;
     transition: all 0.3s ease;
 }
-input[type=email]:focus {
-    border-color: #8c7569;
-    outline: none;
-}
+input:focus { border-color: #8c7569; outline: none; }
 
 button {
     display: block;
@@ -179,36 +98,18 @@ button {
     transition: all 0.3s ease;
     box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
+button.reset { background: #e74c3c; color: white; }
+button.reset:hover { background: #c0392b; transform: scale(1.05); }
+button.send { background: #3498db; color: white; }
+button.send:hover { background: #2980b9; transform: scale(1.05); }
+button.save-location { background: #27ae60; color: white; }
+button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
-button.reset { 
-    background: #e74c3c; 
-    color: white; 
-}
-button.reset:hover { 
-    background: #c0392b; 
-    transform: scale(1.05);
-}
-
-button.send { 
-    background: #3498db; 
-    color: white; 
-}
-button.send:hover { 
-    background: #2980b9; 
-    transform: scale(1.05);
-}
-
-.message {
-    margin-top: 10px;
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-    word-break: break-word;
-}
+.message { margin-top: 10px; font-weight: bold; color: #333; text-align: center; word-break: break-word; }
 
 @media (max-width: 500px) {
     .container { padding: 30px 20px; }
-    button, input[type=email] { font-size: 0.9rem; padding: 12px; }
+    button, input { font-size: 0.9rem; padding: 12px; }
     h2 { font-size: 1.4rem; }
     .logout-btn { width: 36px; height: 36px; font-size: 18px; }
     .logout-text { font-size: 12px; }
@@ -217,133 +118,120 @@ button.send:hover {
 </head>
 <body>
 
-<!-- 🔹 Logout Button with Text -->
 <div class="logout-wrapper">
   <button class="logout-btn" onclick="logout()">🚪</button>
   <span class="logout-text">Logout</span>
 </div>
 
-
-
 <div class="container" id="admin-container">
     <h2>Today's Present Students</h2>
-<p>Total Present: <span id="total">0</span></p>
-<div class="list-box">
-  <ul id="list"></ul>
-</div>
-
-
+    <p>Total Present: <span id="total">0</span></p>
+    <div class="list-box"><ul id="list"></ul></div>
 
     <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
 
     <input type="email" id="email" placeholder="Enter faculty email" />
     <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
 
+    <hr style="margin: 20px 0;">
+
+    <h2>Campus Location Settings</h2>
+    <input type="number" id="latitude" placeholder="Latitude" step="0.00001"/>
+    <input type="number" id="longitude" placeholder="Longitude" step="0.00001"/>
+    <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
+    <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
+
     <p class="message" id="msg"></p>
 </div>
 
 <script>
-const container = document.getElementById('admin-container');
-const scrollDown = document.querySelector('.scroll-down');
-let isOpened = false;
-
-const openContainer = () => {
-    container.classList.add('is-open');
-    scrollDown.style.opacity = '0';
-};
-
-window.addEventListener('scroll', () => {
-    if (window.scrollY > window.innerHeight / 4 && !isOpened) {
-        isOpened = true;
-        openContainer();
-    }
-});
-
-// Auto open after 1s
-setTimeout(() => {
-    if (!isOpened) {
-        isOpened = true;
-        openContainer();
-    }
-}, 1000);
+const token = localStorage.getItem('token');
 
 async function load() {
     try {
         const res = await fetch('/api/admin/today', {
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
         document.getElementById('total').innerText = data.total || 0;
         const list = document.getElementById('list');
         list.innerHTML = '';
         if (data.usns && data.usns.length > 0) {
-    // Sort USNs in ascending order
-    const sortedUsns = data.usns.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    
-    sortedUsns.forEach((usn, index) => {
-        const li = document.createElement('li');
-        li.textContent = `${index + 1}. ${usn}`; // shows number order
-        list.appendChild(li);
-    });
-} else {
-    list.innerHTML = 'No attendance marked today.';
-}
-
-    } catch (err) {
+            const sortedUsns = data.usns.sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}));
+            sortedUsns.forEach((usn,index)=>{
+                const li = document.createElement('li');
+                li.textContent = `${index+1}. ${usn}`;
+                list.appendChild(li);
+            });
+        } else list.innerHTML = 'No attendance marked today.';
+    } catch(err) {
         console.error(err);
         document.getElementById('list').innerHTML = '❌ Error loading data';
+    }
+
+    // Load campus location
+    try {
+        const res = await fetch('/api/admin/campus-location', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const campus = await res.json();
+        document.getElementById('latitude').value = campus.latitude || '';
+        document.getElementById('longitude').value = campus.longitude || '';
+        document.getElementById('radius').value = campus.radius || '';
+    } catch(err){
+        console.error(err);
     }
 }
 
 async function resetAll() {
-    if (!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
+    if(!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
     try {
         const res = await fetch('/api/admin/reset-all', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token}
         });
         const data = await res.json();
         document.getElementById('msg').innerText = data.message || data.error;
         load();
-    } catch (err) {
-        console.error(err);
-        document.getElementById('msg').innerText = "❌ Server error";
-    }
+    } catch(err) { console.error(err); document.getElementById('msg').innerText="❌ Server error"; }
 }
 
 async function sendEmail() {
     const email = document.getElementById('email').value.trim();
-    if (!email) {
-        alert("Please enter a valid email");
-        return;
-    }
+    if(!email){ alert("Please enter a valid email"); return; }
+
     try {
-        const res = await fetch('/api/admin/send-email', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email })
+        const res = await fetch('/api/admin/send-email',{
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+            body: JSON.stringify({email})
         });
         const data = await res.json();
         document.getElementById('msg').innerText = data.message || data.error;
-    } catch (err) {
-        console.error(err);
-        document.getElementById('msg').innerText = "❌ Failed to send email";
-    }
+    } catch(err){ console.error(err); document.getElementById('msg').innerText="❌ Failed to send email"; }
 }
 
-// 🔹 Logout Function
-function logout() {
-    localStorage.removeItem('token');
-    window.location.href = "login.html"; // change this path if needed
+async function saveCampusLocation(){
+    const latitude = parseFloat(document.getElementById('latitude').value);
+    const longitude = parseFloat(document.getElementById('longitude').value);
+    const radius = parseFloat(document.getElementById('radius').value);
+
+    if(isNaN(latitude)||isNaN(longitude)||isNaN(radius)){ alert("Enter valid values"); return; }
+
+    try {
+        const res = await fetch('/api/admin/campus-location',{
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+            body: JSON.stringify({latitude,longitude,radius})
+        });
+        const data = await res.json();
+        document.getElementById('msg').innerText = data.message || data.error;
+    } catch(err){ console.error(err); document.getElementById('msg').innerText="❌ Failed to save location"; }
 }
 
-// Load data on page load
-document.addEventListener('DOMContentLoaded', () => {
-    load();
-});
+function logout(){ localStorage.removeItem('token'); window.location.href="login.html"; }
+
+document.addEventListener('DOMContentLoaded', load);
 </script>
 
 </body>
