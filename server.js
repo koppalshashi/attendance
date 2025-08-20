@@ -39,8 +39,16 @@ const attendanceSchema = new mongoose.Schema({
   markedBy: { type: String, default: 'student' }
 });
 
+// 🔹 Campus location schema
+const campusSchema = new mongoose.Schema({
+  latitude: Number,
+  longitude: Number,
+  radius: Number
+});
+
 const User = mongoose.model('User', userSchema);
 const Attendance = mongoose.model('Attendance', attendanceSchema);
+const Campus = mongoose.model('Campus', campusSchema);
 
 // --- Middleware ---
 app.use(cors());
@@ -56,14 +64,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// --- Routes ---
-
-// root -> login.html
+// --- Root (Login page) ---
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// --- Register new user ---
+// --- Register ---
 app.post('/api/register', async (req, res) => {
   const { name, usn, password, role } = req.body;
 
@@ -75,13 +81,7 @@ app.post('/api/register', async (req, res) => {
     const existing = await User.findOne({ usn });
     if (existing) return res.status(400).json({ error: "USN already registered" });
 
-    const newUser = new User({
-      name,
-      usn,
-      password, // ⚠️ stored as plain text for now
-      role: role || 'student'
-    });
-
+    const newUser = new User({ name, usn, password, role: role || 'student' });
     await newUser.save();
     res.json({ message: "✅ Registration successful, please login" });
   } catch (err) {
@@ -143,7 +143,25 @@ app.get('/api/me', authMiddleware, async (req, res) => {
   res.json({ name: me.name, usn: me.usn, role: me.role });
 });
 
-// --- Attendance marking ---
+// --- Helper: GPS distance check (Haversine) ---
+function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const R = 6371e3; 
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δφ = toRad(lat2 - lat1);
+  const Δλ = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(Δφ / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c;
+  return d <= radiusMeters;
+}
+
+// --- Attendance marking (IP + GPS) ---
 app.post('/api/attendance', authMiddleware, async (req, res) => {
   const allowedIPs = [
     '49.37.250.175', '117.230.5.171', '152.57.115.200', '152.57.74.97',
@@ -152,11 +170,20 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   ];
 
   let clientIP = req.ip?.replace('::ffff:', '') || '';
-  console.log('📌 Client IP:', clientIP);
-
   if (!ipRangeCheck(clientIP, allowedIPs)) {
-    console.log('❌ Blocked IP:', clientIP);
     return res.status(403).json({ error: 'Attendance can only be marked from campus Wi-Fi' });
+  }
+
+  const { latitude, longitude, status } = req.body;
+  if (!latitude || !longitude) return res.status(400).json({ error: 'GPS location required' });
+
+  const campus = await Campus.findOne({});
+  const campusLat = campus?.latitude || 15.36549;
+  const campusLon = campus?.longitude || 75.12685;
+  const allowedRadius = campus?.radius || 20;
+
+  if (!isWithinRadius(latitude, longitude, campusLat, campusLon, allowedRadius)) {
+    return res.status(403).json({ error: 'Attendance can only be marked inside campus area' });
   }
 
   const me = await User.findById(req.user.id).lean();
@@ -166,8 +193,8 @@ app.post('/api/attendance', authMiddleware, async (req, res) => {
   const existing = await Attendance.findOne({ usn: me.usn, date: today });
   if (existing) return res.json({ message: 'Attendance already marked today' });
 
-  await Attendance.create({ usn: me.usn, date: today, status: req.body.status, markedBy: "student" });
-  res.json({ message: `Attendance marked as ${req.body.status}` });
+  await Attendance.create({ usn: me.usn, date: today, status, markedBy: "student" });
+  res.json({ message: `Attendance marked as ${status}` });
 });
 
 // --- Admin: view today’s attendance ---
@@ -177,7 +204,6 @@ app.get('/api/admin/today', authMiddleware, async (req, res) => {
 
   const today = new Date().toISOString().split("T")[0];
   const list = await Attendance.find({ date: today, status: 'present' });
-
   const sortedUsns = list.map(x => x.usn).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
   res.json({ total: sortedUsns.length, usns: sortedUsns });
@@ -208,17 +234,14 @@ app.post('/api/admin/send-email', authMiddleware, async (req, res) => {
 
   const today = new Date().toISOString().split("T")[0];
   const list = await Attendance.find({ date: today, status: 'present' });
-
-  const sortedUsns = list.map(x => x.usn).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
+  const sortedUsns = list.map(x => x.usn).sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}));
   const total = sortedUsns.length;
 
-  // ✅ Compact rows (2 columns of USNs per row)
   let rows = "";
-  for (let i = 0; i < sortedUsns.length; i += 2) {
+  for(let i=0;i<sortedUsns.length;i+=2){
     rows += `<tr>
-      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${i + 1}. ${sortedUsns[i]}</td>
-      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${sortedUsns[i + 1] ? i + 2 + ". " + sortedUsns[i + 1] : ""}</td>
+      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${i+1}. ${sortedUsns[i]}</td>
+      <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2C3E50;">${sortedUsns[i+1] ? i+2 + ". "+sortedUsns[i+1] : ""}</td>
     </tr>`;
   }
 
@@ -242,23 +265,53 @@ app.post('/api/admin/send-email', authMiddleware, async (req, res) => {
     </div>
   `;
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER || 'youremail@gmail.com',
-    to: email,
-    subject: `Today's Attendance - ${today}`,
-    html: message
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER || 'youremail@gmail.com',
+      to: email,
+      subject: `Today's Attendance - ${today}`,
+      html: message
+    });
     res.json({ message: `✅ Attendance sent to ${email}` });
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
+// --- Admin: set/get campus location ---
+app.post('/api/admin/campus-location', authMiddleware, async (req,res)=>{
+  const me = await User.findById(req.user.id).lean();
+  if(!me || me.role!=='admin') return res.status(403).json({error:'Access denied'});
+
+  const {latitude, longitude, radius} = req.body;
+  if(!latitude || !longitude || !radius) return res.status(400).json({error:'Latitude, longitude and radius required'});
+
+  try {
+    let campus = await Campus.findOne({});
+    if(!campus){
+      campus = new Campus({latitude, longitude, radius});
+    } else {
+      campus.latitude = latitude;
+      campus.longitude = longitude;
+      campus.radius = radius;
+    }
+    await campus.save();
+    res.json({message:'✅ Campus location updated'});
+  } catch(err){
+    console.error(err);
+    res.status(500).json({error:'Failed to update campus location'});
+  }
+});
+
+app.get('/api/admin/campus-location', authMiddleware, async (req,res)=>{
+  const me = await User.findById(req.user.id).lean();
+  if(!me || me.role!=='admin') return res.status(403).json({error:'Access denied'});
+
+  const campus = await Campus.findOne({});
+  res.json(campus || {latitude:15.36549, longitude:75.12685, radius:20});
+});
+
 // --- Start server ---
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
+app.listen(PORT, ()=>console.log(`🚀 Server running on port ${PORT}`));
