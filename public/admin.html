@@ -126,6 +126,23 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
   transform: translateY(0);
 }
 
+/* Spinner */
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 #location-heading {
   cursor: pointer;
   display: inline-block;
@@ -193,7 +210,7 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
       <input type="number" id="longitude" placeholder="Longitude" step="0.00001"/>
       <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
       <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
-      <button class="send" onclick="detectLocation()">📍 Use My Location</button>
+      <button class="send" id="detectBtn" onclick="detectLocation()">📍 Use My Location</button>
     </div>
 </div>
 
@@ -208,7 +225,6 @@ function showToast(message, success=true){
     toast.textContent = message;
     toast.style.background = success ? "#27ae60" : "#e74c3c";
     toast.classList.add("show");
-
     setTimeout(()=>{ toast.classList.remove("show"); }, 3000);
 }
 
@@ -234,7 +250,6 @@ async function load() {
         showToast("❌ Error loading data", false);
     }
 
-    // Load campus location
     try {
         const res = await fetch('/api/admin/campus-location', {
             headers: { 'Authorization': 'Bearer ' + token }
@@ -264,7 +279,6 @@ async function resetAll() {
 async function sendEmail() {
     const email = document.getElementById('email').value.trim();
     if(!email){ alert("Please enter a valid email"); return; }
-
     try {
         const res = await fetch('/api/admin/send-email',{
             method:'POST',
@@ -280,9 +294,7 @@ async function saveCampusLocation(){
     const latitude = parseFloat(document.getElementById('latitude').value);
     const longitude = parseFloat(document.getElementById('longitude').value);
     const radius = parseFloat(document.getElementById('radius').value);
-
     if(isNaN(latitude)||isNaN(longitude)||isNaN(radius)){ alert("Enter valid values"); return; }
-
     try {
         const res = await fetch('/api/admin/campus-location',{
             method:'POST',
@@ -295,17 +307,33 @@ async function saveCampusLocation(){
 }
 
 async function detectLocation(){
+    const detectBtn = document.getElementById("detectBtn");
+    const originalText = detectBtn.innerHTML;
+
+    // Show spinner + loading text
+    detectBtn.innerHTML = '<span class="spinner"></span> Detecting...';
+    detectBtn.disabled = true;
+
     if(!navigator.geolocation){
         alert("❌ Geolocation not supported by this browser.");
+        detectBtn.innerHTML = originalText;
+        detectBtn.disabled = false;
         return;
     }
     navigator.geolocation.getCurrentPosition(
         (pos)=>{
             document.getElementById('latitude').value = pos.coords.latitude.toFixed(5);
             document.getElementById('longitude').value = pos.coords.longitude.toFixed(5);
-            alert("✅ Location detected! Now click Save Location.");
+            showToast("✅ Location detected! Now click Save Location.");
+            detectBtn.innerHTML = originalText;
+            detectBtn.disabled = false;
         },
-        (err)=>{ console.error(err); alert("❌ Failed to fetch location. Please allow location access."); }
+        (err)=>{
+            console.error(err);
+            showToast("❌ Failed to fetch location. Please allow location access.", false);
+            detectBtn.innerHTML = originalText;
+            detectBtn.disabled = false;
+        }
     );
 }
 
