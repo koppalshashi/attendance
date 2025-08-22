@@ -177,6 +177,9 @@
   </div>
 </div>
 
+<div id="loading" style="display:none; text-align:center; margin-top:10px;">
+  <p>⏳ Marking your attendance, please wait...</p>
+</div>
 <script>
 const container = document.getElementById('attendance-container');
 const scrollDown = document.querySelector('.scroll-down');
@@ -277,7 +280,43 @@ function logout() {
   localStorage.removeItem('token');
   window.location.href = "login.html"; // change this path if needed
 }
+
+
+function markPresent() {
+    document.getElementById("loading").style.display = "block"; // show loader
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          fetch('/mark-attendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById("loading").style.display = "none"; // hide loader
+            alert(data.message);
+          })
+          .catch(err => {
+            document.getElementById("loading").style.display = "none";
+            alert("❌ Error marking attendance");
+          });
+        },
+        function(error) {
+          document.getElementById("loading").style.display = "none";
+          alert("⚠️ Location error: " + error.message);
+        }
+      );
+    } else {
+      document.getElementById("loading").style.display = "none";
+      alert("Geolocation not supported by your browser.");
+    }
+  }
+
 </script>
 </body>
 </html>
-
