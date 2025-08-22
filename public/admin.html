@@ -105,7 +105,26 @@ button.send:hover { background: #2980b9; transform: scale(1.05); }
 button.save-location { background: #27ae60; color: white; }
 button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
-.message { margin-top: 10px; font-weight: bold; color: #333; text-align: center; word-break: break-word; }
+/* 🔔 Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #333;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 #location-heading {
   cursor: pointer;
@@ -176,12 +195,22 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
       <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
       <button class="send" onclick="detectLocation()">📍 Use My Location</button>
     </div>
-
-    <p class="message" id="msg"></p>
 </div>
+
+<!-- Toast box -->
+<div id="toast" class="toast"></div>
 
 <script>
 const token = localStorage.getItem('token');
+
+function showToast(message, success=true){
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.style.background = success ? "#27ae60" : "#e74c3c";
+    toast.classList.add("show");
+
+    setTimeout(()=>{ toast.classList.remove("show"); }, 3000);
+}
 
 async function load() {
     try {
@@ -202,7 +231,7 @@ async function load() {
         } else list.innerHTML = 'No attendance marked today.';
     } catch(err) {
         console.error(err);
-        document.getElementById('list').innerHTML = '❌ Error loading data';
+        showToast("❌ Error loading data", false);
     }
 
     // Load campus location
@@ -227,9 +256,9 @@ async function resetAll() {
             headers:{'Authorization':'Bearer '+token}
         });
         const data = await res.json();
-        document.getElementById('msg').innerText = data.message || data.error;
+        showToast(data.message || data.error, !!data.message);
         load();
-    } catch(err) { console.error(err); document.getElementById('msg').innerText="❌ Server error"; }
+    } catch(err) { console.error(err); showToast("❌ Server error", false); }
 }
 
 async function sendEmail() {
@@ -243,8 +272,8 @@ async function sendEmail() {
             body: JSON.stringify({email})
         });
         const data = await res.json();
-        document.getElementById('msg').innerText = data.message || data.error;
-    } catch(err){ console.error(err); document.getElementById('msg').innerText="❌ Failed to send email"; }
+        showToast(data.message || data.error, !!data.message);
+    } catch(err){ console.error(err); showToast("❌ Failed to send email", false); }
 }
 
 async function saveCampusLocation(){
@@ -261,8 +290,8 @@ async function saveCampusLocation(){
             body: JSON.stringify({latitude,longitude,radius})
         });
         const data = await res.json();
-        document.getElementById('msg').innerText = data.message || data.error;
-    } catch(err){ console.error(err); document.getElementById('msg').innerText="❌ Failed to save location"; }
+        showToast(data.message || data.error, !!data.message);
+    } catch(err){ console.error(err); showToast("❌ Failed to save location", false); }
 }
 
 async function detectLocation(){
@@ -276,10 +305,7 @@ async function detectLocation(){
             document.getElementById('longitude').value = pos.coords.longitude.toFixed(5);
             alert("✅ Location detected! Now click Save Location.");
         },
-        (err)=>{
-            console.error(err);
-            alert("❌ Failed to fetch location. Please allow location access.");
-        }
+        (err)=>{ console.error(err); alert("❌ Failed to fetch location. Please allow location access."); }
     );
 }
 
@@ -288,10 +314,10 @@ function toggleLocationSettings(){
     const arrow = document.getElementById('arrow');
     if (box.style.display === "none") {
         box.style.display = "block";
-        arrow.textContent = "⬆️"; // open
+        arrow.textContent = "⬆️"; 
     } else {
         box.style.display = "none";
-        arrow.textContent = "⬇️"; // closed
+        arrow.textContent = "⬇️"; 
     }
 }
 
