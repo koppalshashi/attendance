@@ -61,17 +61,33 @@ body {
 h2 { margin-top: 0; color: #55311c; }
 
 .list-box {
-    max-height: 200px;
+    max-height: 120px;
     overflow-y: auto;
     margin: 15px 0;
-    padding: 10px;
+    padding: 6px;
     border: 1px solid #ccc;
     border-radius: 10px;
     background: #f9f9f9;
 }
+#campus-list li {
+    font-size: 1rem;       /* smaller text */
+    padding: 4px 8px;         /* smaller padding */
+    border-radius: 12px;      /* slightly smaller rounded corners */
+    margin-bottom: 4px;       /* less vertical spacing */
+    display: flex;
+    align-items: center;
+    gap: 4px;                 /* smaller gap between text and delete button */
+}
+
+#campus-list li button {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    padding: 0;
+}
 
 ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-start; }
-ul li { background: #3498db; color: white; padding: 7px 14px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 3px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease; }
+ul li { background: #3498db; color: white; padding: 7px 14px; border-radius: 20px; font-weight: 600; font-size: 0.9rem; box-shadow: 0 3px 8px rgba(0,0,0,0.15); transition: transform 0.2s ease; display: flex; align-items: center; gap: 5px; }
 ul li:hover { transform: scale(1.05); background: #2980b9; }
 
 input[type=email], input[type=number] {
@@ -138,10 +154,7 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
   vertical-align: middle;
   margin-right: 6px;
 }
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 #location-heading {
   cursor: pointer;
@@ -151,27 +164,11 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
   transition: transform 0.2s ease-in-out;
   animation: glow 1.5s infinite;
 }
+#location-heading:hover { transform: scale(1.05); background: rgba(0, 150, 255, 0.1); }
+@keyframes glow { 0% { color: #007bff; } 50% { color: #ff4081; } 100% { color: #007bff; } }
 
-#location-heading:hover {
-  transform: scale(1.05);
-  background: rgba(0, 150, 255, 0.1);
-}
-
-@keyframes glow {
-  0% { color: #007bff; }
-  50% { color: #ff4081; }
-  100% { color: #007bff; }
-}
-
-#arrow {
-  display: inline-block;
-  animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
+#arrow { display: inline-block; animation: bounce 1s infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
 @media (max-width: 500px) {
     .container { padding: 30px 20px; }
@@ -180,6 +177,8 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
     .logout-btn { width: 36px; height: 36px; font-size: 18px; }
     .logout-text { font-size: 12px; }
 }
+
+
 </style>
 </head>
 <body>
@@ -211,10 +210,11 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
       <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
       <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
       <button class="send" id="detectBtn" onclick="detectLocation()">📍 Use My Location</button>
+      <h3>Saved Campus Locations:</h3>
+      <div class="list-box"><ul id="campus-list"></ul></div>
     </div>
 </div>
 
-<!-- Toast box -->
 <div id="toast" class="toast"></div>
 
 <script>
@@ -229,10 +229,9 @@ function showToast(message, success=true){
 }
 
 async function load() {
+    // Load today's attendance
     try {
-        const res = await fetch('/api/admin/today', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await fetch('/api/admin/today', { headers: { 'Authorization': 'Bearer ' + token } });
         const data = await res.json();
         document.getElementById('total').innerText = data.total || 0;
         const list = document.getElementById('list');
@@ -245,31 +244,46 @@ async function load() {
                 list.appendChild(li);
             });
         } else list.innerHTML = 'No attendance marked today.';
-    } catch(err) {
-        console.error(err);
-        showToast("❌ Error loading data", false);
-    }
+    } catch(err) { console.error(err); showToast("❌ Error loading data", false); }
 
+    // Load all campus locations with delete buttons
     try {
-        const res = await fetch('/api/admin/campus-location', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const campus = await res.json();
-        document.getElementById('latitude').value = campus.latitude || '';
-        document.getElementById('longitude').value = campus.longitude || '';
-        document.getElementById('radius').value = campus.radius || '';
-    } catch(err){
-        console.error(err);
-    }
+        const res = await fetch('/api/admin/campus-locations', { headers: { 'Authorization': 'Bearer ' + token } });
+        const locations = await res.json();
+        const campusList = document.getElementById('campus-list');
+        campusList.innerHTML = '';
+        if(locations && locations.length > 0){
+            locations.forEach((loc,i)=>{
+                const li = document.createElement('li');
+                li.textContent = `#${i+1}: Lat ${loc.latitude}, Lon ${loc.longitude}, R ${loc.radius}m`;
+
+                const delBtn = document.createElement('button');
+                delBtn.textContent = "❌";
+                delBtn.style.marginLeft = "10px";
+                delBtn.style.background = "#e74c3c";
+                delBtn.style.color = "white";
+                delBtn.style.border = "none";
+                delBtn.style.borderRadius = "50%";
+                delBtn.style.width = "20px";
+                delBtn.style.height = "20px";
+                delBtn.style.cursor = "pointer";
+                delBtn.onclick = () => removeCampusLocation(loc._id);
+
+                li.appendChild(delBtn);
+                campusList.appendChild(li);
+            });
+            const lastLoc = locations[locations.length-1];
+            document.getElementById('latitude').value = lastLoc.latitude;
+            document.getElementById('longitude').value = lastLoc.longitude;
+            document.getElementById('radius').value = lastLoc.radius;
+        }
+    } catch(err){ console.error(err); showToast("❌ Failed to load campus locations", false); }
 }
 
 async function resetAll() {
     if(!confirm("⚠️ Are you sure? This will clear ALL students' attendance and device IDs!")) return;
     try {
-        const res = await fetch('/api/admin/reset-all', {
-            method:'POST',
-            headers:{'Authorization':'Bearer '+token}
-        });
+        const res = await fetch('/api/admin/reset-all', { method:'POST', headers:{'Authorization':'Bearer '+token} });
         const data = await res.json();
         showToast(data.message || data.error, !!data.message);
         load();
@@ -296,21 +310,33 @@ async function saveCampusLocation(){
     const radius = parseFloat(document.getElementById('radius').value);
     if(isNaN(latitude)||isNaN(longitude)||isNaN(radius)){ alert("Enter valid values"); return; }
     try {
-        const res = await fetch('/api/admin/campus-location',{
+        const res = await fetch('/api/admin/campus-location', {
             method:'POST',
             headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
             body: JSON.stringify({latitude,longitude,radius})
         });
         const data = await res.json();
         showToast(data.message || data.error, !!data.message);
+        load();
     } catch(err){ console.error(err); showToast("❌ Failed to save location", false); }
+}
+
+async function removeCampusLocation(id){
+    if(!confirm("⚠️ Are you sure you want to remove this campus location?")) return;
+    try {
+        const res = await fetch('/api/admin/campus-location/' + id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        showToast(data.message || data.error, !!data.message);
+        load();
+    } catch(err){ console.error(err); showToast("❌ Failed to remove campus location", false); }
 }
 
 async function detectLocation(){
     const detectBtn = document.getElementById("detectBtn");
     const originalText = detectBtn.innerHTML;
-
-    // Show spinner + loading text
     detectBtn.innerHTML = '<span class="spinner"></span> Detecting...';
     detectBtn.disabled = true;
 
