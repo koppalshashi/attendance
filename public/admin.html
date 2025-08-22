@@ -107,6 +107,36 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
 .message { margin-top: 10px; font-weight: bold; color: #333; text-align: center; word-break: break-word; }
 
+#location-heading {
+  cursor: pointer;
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: transform 0.2s ease-in-out;
+  animation: glow 1.5s infinite;
+}
+
+#location-heading:hover {
+  transform: scale(1.05);
+  background: rgba(0, 150, 255, 0.1);
+}
+
+@keyframes glow {
+  0% { color: #007bff; }
+  50% { color: #ff4081; }
+  100% { color: #007bff; }
+}
+
+#arrow {
+  display: inline-block;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 @media (max-width: 500px) {
     .container { padding: 30px 20px; }
     button, input { font-size: 0.9rem; padding: 12px; }
@@ -135,11 +165,17 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
     <hr style="margin: 20px 0;">
 
-    <h2>Campus Location Settings</h2>
-    <input type="number" id="latitude" placeholder="Latitude" step="0.00001"/>
-    <input type="number" id="longitude" placeholder="Longitude" step="0.00001"/>
-    <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
-    <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
+    <h2 id="location-heading" onclick="toggleLocationSettings()">
+      📍 Campus Location Settings <span id="arrow">⬇️</span>
+    </h2>
+
+    <div id="location-settings" style="display:none;">
+      <input type="number" id="latitude" placeholder="Latitude" step="0.00001"/>
+      <input type="number" id="longitude" placeholder="Longitude" step="0.00001"/>
+      <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
+      <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
+      <button class="send" onclick="detectLocation()">📍 Use My Location</button>
+    </div>
 
     <p class="message" id="msg"></p>
 </div>
@@ -229,10 +265,42 @@ async function saveCampusLocation(){
     } catch(err){ console.error(err); document.getElementById('msg').innerText="❌ Failed to save location"; }
 }
 
-function logout(){ localStorage.removeItem('token'); window.location.href="login.html"; }
+async function detectLocation(){
+    if(!navigator.geolocation){
+        alert("❌ Geolocation not supported by this browser.");
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+            document.getElementById('latitude').value = pos.coords.latitude.toFixed(5);
+            document.getElementById('longitude').value = pos.coords.longitude.toFixed(5);
+            alert("✅ Location detected! Now click Save Location.");
+        },
+        (err)=>{
+            console.error(err);
+            alert("❌ Failed to fetch location. Please allow location access.");
+        }
+    );
+}
+
+function toggleLocationSettings(){
+    const box = document.getElementById('location-settings');
+    const arrow = document.getElementById('arrow');
+    if (box.style.display === "none") {
+        box.style.display = "block";
+        arrow.textContent = "⬆️"; // open
+    } else {
+        box.style.display = "none";
+        arrow.textContent = "⬇️"; // closed
+    }
+}
+
+function logout(){ 
+    localStorage.removeItem('token'); 
+    window.location.href="login.html"; 
+}
 
 document.addEventListener('DOMContentLoaded', load);
 </script>
-
 </body>
 </html>
