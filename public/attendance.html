@@ -200,6 +200,7 @@
 const container = document.getElementById('attendance-container');
 const scrollDown = document.querySelector('.scroll-down');
 let isOpened = false;
+let campusLocation = null; // ✅ store admin’s fixed location
 
 const openContainer = () => {
   container.classList.add('is-open');
@@ -221,6 +222,19 @@ setTimeout(() => {
   }
 }, 1000);
 
+// ✅ Haversine formula to calculate distance between two GPS points
+function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // distance in meters
+}
+
 // 🔐 GPS + IP attendance with loader
 async function mark(status) {
   const loader = document.getElementById("loading");
@@ -236,6 +250,19 @@ async function mark(status) {
     navigator.geolocation.getCurrentPosition(async (position) => {
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
+
+      // ✅ Check distance with admin’s fixed campus location
+      if (campusLocation) {
+        const dist = getDistanceFromLatLon(
+          latitude, longitude,
+          campusLocation.latitude, campusLocation.longitude
+        );
+        if (dist > campusLocation.radius) {
+          loader.style.display = "none";
+          alert(`❌ You are outside the allowed campus zone.\nDistance: ${dist.toFixed(1)}m, Allowed: ${campusLocation.radius}m`);
+          return;
+        }
+      }
 
       try {
         const res = await fetch('/api/attendance', {
@@ -287,6 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try {
+    // ✅ fetch student info
     const res = await fetch('/api/me', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
@@ -298,9 +326,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       alert("⚠️ Session expired, please login again");
       window.location.href = '/login.html';
     }
+
+    // ✅ fetch campus location from admin
+    const locRes = await fetch('/api/admin/campus-location', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (locRes.ok) {
+      campusLocation = await locRes.json();
+      console.log("✅ Campus location loaded:", campusLocation);
+    } else {
+      console.warn("⚠️ No campus location set by admin yet.");
+    }
   } catch (err) {
     console.error(err);
-    alert("⚠️ Unable to fetch student info");
+    alert("⚠️ Unable to fetch student or campus info");
   }
 });
 
@@ -309,6 +348,6 @@ function logout() {
   window.location.href = "login.html"; 
 }
 </script>
+
 </body>
 </html>
-
