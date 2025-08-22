@@ -346,11 +346,35 @@ async function detectLocation(){
         detectBtn.disabled = false;
         return;
     }
+
     navigator.geolocation.getCurrentPosition(
-        (pos)=>{
-            document.getElementById('latitude').value = pos.coords.latitude.toFixed(5);
-            document.getElementById('longitude').value = pos.coords.longitude.toFixed(5);
-            showToast("✅ Location detected! Now click Save Location.");
+        async (pos)=>{
+            // Round values to avoid micro changes
+            const lat = pos.coords.latitude.toFixed(5);
+            const lon = pos.coords.longitude.toFixed(5);
+
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lon;
+
+            // Default radius if not filled
+            let radius = parseFloat(document.getElementById('radius').value);
+            if(isNaN(radius) || radius <= 0) radius = 30; // default 30 meters
+
+            // Save immediately
+            try {
+                const res = await fetch('/api/admin/campus-location', {
+                    method:'POST',
+                    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+                    body: JSON.stringify({latitude: lat, longitude: lon, radius})
+                });
+                const data = await res.json();
+                showToast(data.message || data.error, !!data.message);
+                load();
+            } catch(err){
+                console.error(err);
+                showToast("❌ Failed to save detected location", false);
+            }
+
             detectBtn.innerHTML = originalText;
             detectBtn.disabled = false;
         },
@@ -362,6 +386,7 @@ async function detectLocation(){
         }
     );
 }
+
 
 function toggleLocationSettings(){
     const box = document.getElementById('location-settings');
