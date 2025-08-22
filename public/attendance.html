@@ -241,7 +241,7 @@ async function mark(status) {
       } else {
         alert("⚠️ Please enable location services to mark attendance.");
       }
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }, { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
 
   } catch (err) {
     console.error(err);
@@ -280,3 +280,4 @@ function logout() {
 </script>
 </body>
 </html>
+
