@@ -33,9 +33,12 @@ const userSchema = new mongoose.Schema({
 const attendanceSchema = new mongoose.Schema({
   usn: String,
   date: { type: String },
-  status: String,
-  markedBy: { type: String, default: 'student' }
+  status: { type: String, enum: ['present', 'absent', 'pending'], default: 'pending' },
+  markedBy: { type: String, default: 'student' },   // student or admin
+  approvalRequested: { type: Boolean, default: false },
+  approvedByAdmin: { type: Boolean, default: false }
 });
+
 
 const campusSchema = new mongoose.Schema({
   latitude: Number,
@@ -245,6 +248,120 @@ app.delete('/api/admin/campus-location/:id', authMiddleware, async (req, res) =>
         console.error(err);
         res.status(500).json({ error: 'Failed to remove campus location' });
     }
+});
+
+// Student requests approval
+app.post('/api/request-approval', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'student') return res.status(403).json({ error: 'Only students can request approval' });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // check if already marked
+  const existing = await Attendance.findOne({ usn: me.usn, date: today });
+  if (existing) return res.json({ message: 'Attendance already recorded today' });
+
+  await Attendance.create({
+    usn: me.usn,
+    date: today,
+    status: 'pending',
+    approvalRequested: true
+  });
+
+  res.json({ message: 'Approval requested, wait for admin.' });
+});
+
+// Admin: get all pending approvals
+app.get('/api/admin/pending-approvals', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  const today = new Date().toISOString().split("T")[0];
+  const requests = await Attendance.find({ date: today, status: 'pending', approvalRequested: true });
+  res.json(requests);
+});
+
+// Admin: approve student
+app.post('/api/admin/approve', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  const { id } = req.body;
+  const updated = await Attendance.findByIdAndUpdate(id, { 
+    status: 'present', 
+    approvedByAdmin: true, 
+    markedBy: 'admin' 
+  }, { new: true });
+
+  if (!updated) return res.status(404).json({ error: 'Request not found' });
+  res.json({ message: '✅ Attendance approved' });
+});
+
+// Admin: reject student
+app.post('/api/admin/reject', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  const { id } = req.body;
+  const updated = await Attendance.findByIdAndUpdate(id, { 
+    status: 'absent', 
+    approvedByAdmin: false, 
+    markedBy: 'admin' 
+  }, { new: true });
+
+  if (!updated) return res.status(404).json({ error: 'Request not found' });
+  res.json({ message: '❌ Attendance rejected' });
+});
+
+const approvalSchema = new mongoose.Schema({
+  studentName: String,
+  studentId: String,
+  date: { type: Date, default: Date.now },
+  status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" }
+});
+
+const Approval = mongoose.model("Approval", approvalSchema);
+
+// Alias for frontend: /api/attendance/request-approval
+app.post('/api/attendance/request-approval', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'student') return res.status(403).json({ error: 'Only students can request approval' });
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // check if already marked
+  const existing = await Attendance.findOne({ usn: me.usn, date: today });
+  if (existing) return res.json({ message: 'Attendance already recorded today' });
+
+  await Attendance.create({
+    usn: me.usn,
+    date: today,
+    status: 'pending',
+    approvalRequested: true
+  });
+
+  res.json({ message: 'Approval requested, wait for admin.' });
+});
+
+
+app.get("/api/attendance/approvals", async (req, res) => {
+  try {
+    const approvals = await Approval.find({ status: "pending" });
+    res.json(approvals);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error fetching approvals" });
+  }
+});
+
+app.post("/api/attendance/update-approval", async (req, res) => {
+  try {
+    const { id, status } = req.body;
+    await Approval.findByIdAndUpdate(id, { status });
+
+    res.json({ success: true, message: "Approval updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error updating approval" });
+  }
 });
 
 
