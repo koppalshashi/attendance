@@ -195,6 +195,11 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
     <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
 
+    <hr style="margin: 20px 0;">
+<h2>Pending Approval Requests</h2>
+<div class="list-box"><ul id="approval-list"></ul></div>
+
+
     <input type="email" id="email" placeholder="Enter faculty email" />
     <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
 
@@ -406,6 +411,67 @@ function logout(){
 }
 
 document.addEventListener('DOMContentLoaded', load);
+
+// Load pending approvals
+async function loadApprovals() {
+    try {
+        const res = await fetch('/api/admin/pending-approvals', { 
+            headers: { 'Authorization': 'Bearer ' + token } 
+        });
+        const requests = await res.json();
+        const list = document.getElementById('approval-list');
+        list.innerHTML = '';
+        if (requests.length > 0) {
+            requests.forEach((req, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index+1}. ${req.studentId} - ${new Date(req.date).toLocaleString()}`;
+
+                // Approve button
+                const approveBtn = document.createElement('button');
+                approveBtn.textContent = "✅";
+                approveBtn.style.background = "#27ae60";
+                approveBtn.onclick = () => updateApproval(req._id, true);
+
+                // Reject button
+                const rejectBtn = document.createElement('button');
+                rejectBtn.textContent = "❌";
+                rejectBtn.style.background = "#e74c3c";
+                rejectBtn.onclick = () => updateApproval(req._id, false);
+
+                li.appendChild(approveBtn);
+                li.appendChild(rejectBtn);
+                list.appendChild(li);
+            });
+        } else {
+            list.innerHTML = 'No pending approval requests.';
+        }
+    } catch(err) {
+        console.error(err);
+        showToast("❌ Error loading approvals", false);
+    }
+}
+
+// Approve / Reject request
+async function updateApproval(id, approve) {
+    try {
+        const url = approve ? '/api/admin/approve' : '/api/admin/reject';
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        showToast(data.message || data.error, !!data.message);
+        load();         // reload present students
+        loadApprovals();// reload approval list
+    } catch(err) {
+        console.error(err);
+        showToast("❌ Failed to update approval", false);
+    }
+}
+
+loadApprovals();
+
 </script>
 </body>
 </html>
