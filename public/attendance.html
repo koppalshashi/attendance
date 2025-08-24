@@ -190,6 +190,12 @@
     <button class="present" onclick="mark('present')">Present</button>
   </div>
 
+  <div style="margin-top:20px;">
+    <button id="approval-btn" style="display:none; padding:12px 25px; font-size:16px; font-weight:600; border:none; border-radius:20px; cursor:pointer; background:#e74c3c; color:white;">
+      🚨 Request Approval
+    </button>
+  </div>
+
   <div id="loading">
     <div class="spinner"></div>
     ⏳ Marking your attendance, please wait...
@@ -222,9 +228,9 @@ setTimeout(() => {
   }
 }, 1000);
 
-// ✅ Haversine formula to calculate distance between two GPS points
+// ✅ Haversine formula
 function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
-  const R = 6371000; // meters
+  const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a =
@@ -232,18 +238,19 @@ function getDistanceFromLatLon(lat1, lon1, lat2, lon2) {
     Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c; // distance in meters
+  return R * c;
 }
 
-// 🔐 GPS + IP attendance with loader
+// 🔐 GPS attendance with loader + fallback to approval
 async function mark(status) {
   const loader = document.getElementById("loading");
-  loader.style.display = "block"; // show loader
+  loader.style.display = "block";
 
   try {
     if (!navigator.geolocation) {
       loader.style.display = "none";
       alert("⚠️ GPS not supported in your browser");
+      showApprovalButton();
       return;
     }
 
@@ -251,7 +258,6 @@ async function mark(status) {
       const latitude = position.coords.latitude;
       const longitude = position.coords.longitude;
 
-      // ✅ Check distance with admin’s fixed campus location
       if (campusLocation) {
         const dist = getDistanceFromLatLon(
           latitude, longitude,
@@ -259,7 +265,8 @@ async function mark(status) {
         );
         if (dist > campusLocation.radius) {
           loader.style.display = "none";
-          alert(`❌ You are outside the allowed campus zone.\nDistance: ${dist.toFixed(1)}m, Allowed: ${campusLocation.radius}m`);
+          alert(`❌ Outside campus zone.\nDistance: ${dist.toFixed(1)}m, Allowed: ${campusLocation.radius}m`);
+          showApprovalButton(); // ✅ show approval option
           return;
         }
       }
@@ -274,36 +281,31 @@ async function mark(status) {
           body: JSON.stringify({ status, latitude, longitude })
         });
 
-        loader.style.display = "none"; // hide loader
-
+        loader.style.display = "none";
         const data = await res.json();
         if (res.ok) {
           alert("✅ " + (data.message || "Attendance marked"));
         } else {
-          alert("❌ " + (data.error || data.message || "Error marking attendance"));
+          alert("❌ " + (data.error || "Error marking attendance"));
+          showApprovalButton(); // fallback
         }
       } catch (err) {
         loader.style.display = "none";
-        alert("⚠️ Server error while marking attendance");
+        alert("⚠️ Server error");
+        showApprovalButton();
       }
 
     }, (err) => {
-      loader.style.display = "none"; // hide loader on error
-      if (err.code === 1) {
-        alert("⚠️ Location permission denied. Please allow location to mark attendance.");
-      } else if (err.code === 2) {
-        alert("⚠️ Location unavailable. Try again near a window or enable GPS.");
-      } else if (err.code === 3) {
-        alert("⚠️ Location request timed out. Try again.");
-      } else {
-        alert("⚠️ Please enable location services to mark attendance.");
-      }
+      loader.style.display = "none";
+      alert("⚠️ GPS Error: " + err.message);
+      showApprovalButton(); // fallback if GPS fails
     }, { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 });
 
   } catch (err) {
     loader.style.display = "none";
     console.error(err);
     alert("⚠️ Unexpected error");
+    showApprovalButton();
   }
 }
 
@@ -314,32 +316,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try {
-    // ✅ fetch student info
     const res = await fetch('/api/me', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
     if (res.ok) {
-      const infoDiv = document.getElementById('student-info');
-      infoDiv.innerHTML = `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
+      document.getElementById('student-info').innerHTML =
+        `<h3>Welcome, ${data.name}</h3><p>USN: ${data.usn}</p>`;
     } else {
-      alert("⚠️ Session expired, please login again");
+      alert("⚠️ Session expired");
       window.location.href = '/login.html';
     }
 
-    // ✅ fetch campus location from admin
     const locRes = await fetch('/api/admin/campus-location', {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     if (locRes.ok) {
       campusLocation = await locRes.json();
-      console.log("✅ Campus location loaded:", campusLocation);
-    } else {
-      console.warn("⚠️ No campus location set by admin yet.");
     }
   } catch (err) {
     console.error(err);
-    alert("⚠️ Unable to fetch student or campus info");
+    alert("⚠️ Unable to fetch student/campus info");
   }
 });
 
@@ -347,6 +344,35 @@ function logout() {
   localStorage.removeItem('token');
   window.location.href = "login.html"; 
 }
+
+function showApprovalButton() {
+  document.getElementById("approval-btn").style.display = "block";
+}
+
+// Handle approval request
+document.getElementById("approval-btn").addEventListener("click", async () => {
+  try {
+    const res = await fetch('/api/attendance/request-approval', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
+      },
+      body: JSON.stringify({})
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert("✅ Approval request sent. Wait for admin approval.");
+      document.getElementById("approval-btn").style.display = "none";
+    } else {
+      alert("❌ " + (data.error || "Error sending request"));
+    }
+  } catch (err) {
+    console.error(err);
+    alert("⚠️ Failed to send approval request");
+  }
+});
 </script>
 
 </body>
