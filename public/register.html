@@ -92,7 +92,7 @@
       font-size:32px;
       font-weight:800;
       transform:translate(-50%,-50%);
-      
+
       z-index: 10;
       border-radius: 10px;
       width: 30px;
@@ -133,6 +133,11 @@
             <label class="input-label" for="usn">USN</label>
             <input type="text" id="usn" placeholder="USN" required>
           </div>
+          <div class="input-block">
+          <label class="input-label" for="email">Email</label>
+           <input type="email" id="email" placeholder="Email Address" required>
+          </div>
+
           <div class="input-block">
             <label class="input-label" for="password">Password</label>
             <input type="password" id="password" placeholder="Password" required>
@@ -194,36 +199,37 @@
     };
 
     // Registration form
-    document.getElementById("registerForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const name = document.getElementById("name").value.trim();
-      const usn = document.getElementById("usn").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const role = document.getElementById("role").value;
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("name").value.trim();
+  const usn = document.getElementById("usn").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const role = document.getElementById("role").value;
 
-      if (!name || !usn || !password) {
-        alert("⚠️ Please fill all fields");
-        return;
-      }
+  if (!name || !usn || !email || !password) {
+    alert("⚠️ Please fill all fields");
+    return;
+  }
 
-      try {
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, usn, password, role })
-        });
-
-        const data = await res.json();
-        alert(data.message || data.error);
-
-        if (res.ok) {
-          window.location.href = "login.html";
-        }
-      } catch (err) {
-        alert("❌ Error connecting to server");
-      }
+  try {
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, usn, email, password, role })
     });
+
+    const data = await res.json();
+    alert(data.message || data.error);
+
+    if (res.ok) {
+      window.location.href = "login.html";
+    }
+  } catch (err) {
+    alert("❌ Error connecting to server");
+  }
+});
+
   </script>
 </body>
 </html>
-
