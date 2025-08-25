@@ -27,8 +27,10 @@ const userSchema = new mongoose.Schema({
   usn: String,
   password: String,
   role: { type: String, default: 'student' },
-  deviceId: String
+  deviceId: String,
+  email: { type: String, required: true }  // 👈 add this
 });
+
 
 const attendanceSchema = new mongoose.Schema({
   usn: String,
@@ -66,17 +68,21 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.ht
 
 // Register
 app.post('/api/register', async (req, res) => {
-  const { name, usn, password, role } = req.body;
-  if (!name || !usn || !password) return res.status(400).json({ error: "All fields required" });
+  const { name, usn, password, role, email } = req.body;
+  if (!name || !usn || !password || !email) 
+    return res.status(400).json({ error: "All fields required" });
 
   try {
     const existing = await User.findOne({ usn });
     if (existing) return res.status(400).json({ error: "USN already registered" });
 
-    const newUser = new User({ name, usn, password, role: role || 'student' });
+    const newUser = new User({ name, usn, password, role: role || 'student', email });
     await newUser.save();
     res.json({ message: "✅ Registration successful, please login" });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
+  } catch (err) { 
+    console.error(err); 
+    res.status(500).json({ error: "Server error" }); 
+  }
 });
 
 // Login with Device Lock
@@ -307,7 +313,21 @@ app.post('/api/admin/approve', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-  res.json({ message: '✅ Attendance approved' });
+
+  // fetch student email
+  const student = await User.findOne({ usn: updated.usn });
+  if (student && student.email) {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: student.email,
+      subject: "✅ Attendance Approved",
+      html: `<p>Hi ${student.name},</p>
+             <p>Your attendance for <b>${updated.date}</b> has been <span style="color:green">approved</span>.</p>
+             <p>Regards,<br>Admin</p>`
+    });
+  }
+
+  res.json({ message: '✅ Attendance approved and email sent' });
 });
 
 // Admin: reject student
@@ -323,8 +343,23 @@ app.post('/api/admin/reject', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-  res.json({ message: '❌ Attendance rejected' });
+
+  // fetch student email
+  const student = await User.findOne({ usn: updated.usn });
+  if (student && student.email) {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: student.email,
+      subject: "❌ Attendance Rejected",
+      html: `<p>Hi ${student.name},</p>
+             <p>Your attendance for <b>${updated.date}</b> has been <span style="color:red">rejected</span>.</p>
+             <p>Regards,<br>Admin</p>`
+    });
+  }
+
+  res.json({ message: '❌ Attendance rejected and email sent' });
 });
+
 
 const approvalSchema = new mongoose.Schema({
   studentName: String,
