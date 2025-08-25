@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Approvals</title>
+<link href="https://fonts.googleapis.com/css?family=Nunito:400,600,700" rel="stylesheet">
+<style>
+/* ✅ Reuse same styles from admin.html */
+body { font-family: "Nunito", sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+.container { max-width: 600px; margin: 40px auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+ul { list-style: none; padding: 0; }
+ul li { padding: 10px; margin: 6px 0; background: #f9f9f9; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+button { margin-left: 6px; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+button.approve { background: #27ae60; color: white; }
+button.reject { background: #e74c3c; color: white; }
+.logout-btn { position: fixed; top: 18px; right: 18px; background: #f39c12; color: white; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; cursor: pointer; }
+</style>
+</head>
+<body>
+    <button class="logout-btn" onclick="logout()">🚪</button>
+    <div class="container">
+        <h2>Pending Approval Requests</h2>
+        <ul id="approval-list"></ul>
+    </div>
+
+<script>
+const token = localStorage.getItem('token');
+
+async function loadApprovals() {
+    try {
+        const res = await fetch('/api/admin/pending-approvals', { 
+            headers: { 'Authorization': 'Bearer ' + token } 
+        });
+        const requests = await res.json();
+        const list = document.getElementById('approval-list');
+        list.innerHTML = '';
+
+        if (requests.length > 0) {
+            requests.forEach((req, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${index+1}. ${req.name} (${req.usn}) 
+                    <div>
+                        <button class="approve" onclick="updateApproval('${req._id}', true)">✅ Approve</button>
+                        <button class="reject" onclick="updateApproval('${req._id}', false)">❌ Reject</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        } else {
+            list.innerHTML = '<li>No pending approval requests.</li>';
+        }
+    } catch(err) {
+        console.error(err);
+        alert("❌ Error loading approvals");
+    }
+}
+
+async function updateApproval(id, approve) {
+    try {
+        const url = approve ? '/api/admin/approve' : '/api/admin/reject';
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+        loadApprovals();
+    } catch(err) {
+        console.error(err);
+        alert("❌ Failed to update approval");
+    }
+}
+
+function logout(){ 
+    localStorage.removeItem('token'); 
+    window.location.href="login.html"; 
+}
+
+document.addEventListener('DOMContentLoaded', loadApprovals);
+</script>
+</body>
+</html>
