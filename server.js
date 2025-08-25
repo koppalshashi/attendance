@@ -27,10 +27,8 @@ const userSchema = new mongoose.Schema({
   usn: String,
   password: String,
   role: { type: String, default: 'student' },
-  deviceId: String,
-  email: { type: String, required: true }  // 👈 add this
+  deviceId: String
 });
-
 
 const attendanceSchema = new mongoose.Schema({
   usn: String,
@@ -68,21 +66,17 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.ht
 
 // Register
 app.post('/api/register', async (req, res) => {
-  const { name, usn, password, role, email } = req.body;
-  if (!name || !usn || !password || !email) 
-    return res.status(400).json({ error: "All fields required" });
+  const { name, usn, password, role } = req.body;
+  if (!name || !usn || !password) return res.status(400).json({ error: "All fields required" });
 
   try {
     const existing = await User.findOne({ usn });
     if (existing) return res.status(400).json({ error: "USN already registered" });
 
-    const newUser = new User({ name, usn, password, role: role || 'student', email });
+    const newUser = new User({ name, usn, password, role: role || 'student' });
     await newUser.save();
     res.json({ message: "✅ Registration successful, please login" });
-  } catch (err) { 
-    console.error(err); 
-    res.status(500).json({ error: "Server error" }); 
-  }
+  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
 });
 
 // Login with Device Lock
@@ -278,27 +272,14 @@ app.post('/api/request-approval', authMiddleware, async (req, res) => {
 });
 
 // Admin: get all pending approvals
-// Admin: get all pending approvals (with student details)
 app.get('/api/admin/pending-approvals', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
 
   const today = new Date().toISOString().split("T")[0];
-  const requests = await Attendance.find({ date: today, status: 'pending', approvalRequested: true }).lean();
-
-  // Attach student info (name + usn) from User collection
-  const withStudentInfo = await Promise.all(requests.map(async (reqItem) => {
-    const student = await User.findOne({ usn: reqItem.usn }).lean();
-    return {
-      ...reqItem,
-      name: student ? student.name : "Unknown",
-      usn: student ? student.usn : reqItem.usn
-    };
-  }));
-
-  res.json(withStudentInfo);
+  const requests = await Attendance.find({ date: today, status: 'pending', approvalRequested: true });
+  res.json(requests);
 });
-
 
 // Admin: approve student
 app.post('/api/admin/approve', authMiddleware, async (req, res) => {
@@ -313,21 +294,7 @@ app.post('/api/admin/approve', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-
-  // fetch student email
-  const student = await User.findOne({ usn: updated.usn });
-  if (student && student.email) {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: student.email,
-      subject: "✅ Attendance Approved",
-      html: `<p>Hi ${student.name},</p>
-             <p>Your attendance for <b>${updated.date}</b> has been <span style="color:green">approved</span>.</p>
-             <p>Regards,<br>Admin</p>`
-    });
-  }
-
-  res.json({ message: '✅ Attendance approved and email sent' });
+  res.json({ message: '✅ Attendance approved' });
 });
 
 // Admin: reject student
@@ -343,23 +310,8 @@ app.post('/api/admin/reject', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-
-  // fetch student email
-  const student = await User.findOne({ usn: updated.usn });
-  if (student && student.email) {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: student.email,
-      subject: "❌ Attendance Rejected",
-      html: `<p>Hi ${student.name},</p>
-             <p>Your attendance for <b>${updated.date}</b> has been <span style="color:red">rejected</span>.</p>
-             <p>Regards,<br>Admin</p>`
-    });
-  }
-
-  res.json({ message: '❌ Attendance rejected and email sent' });
+  res.json({ message: '❌ Attendance rejected' });
 });
-
 
 const approvalSchema = new mongoose.Schema({
   studentName: String,
