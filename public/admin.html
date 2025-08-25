@@ -424,7 +424,9 @@ async function loadApprovals() {
         if (requests.length > 0) {
             requests.forEach((req, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${index+1}. ${req.studentId} - ${new Date(req.date).toLocaleString()}`;
+                li.textContent = `${index+1}. ${req.name} (${req.usn}) - ${new Date(req.date).toLocaleString()}`;
+
+
 
                 // Approve button
                 const approveBtn = document.createElement('button');
