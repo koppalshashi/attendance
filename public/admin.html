@@ -179,21 +179,23 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 }
 .approval-btn {
     position: fixed;
-    bottom: 20px;       /* distance from bottom */
-    left: 20px;         /* distance from left */
+    top: 20px;        /* distance from top */
+    left: 20px;       /* distance from left */
     background: #3498db;
     color: white;
     padding: 12px 20px;
     border-radius: 30px;
     font-weight: 600;
-    text-decoration: none;  /* no underline */
+    text-decoration: none;  /* remove underline */
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     transition: all 0.3s ease;
+    z-index: 1000;   /* makes sure it stays above other elements */
 }
 .approval-btn:hover {
     background: #2980b9;
     transform: scale(1.05);
 }
+
 
 
 </style>
