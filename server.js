@@ -272,14 +272,27 @@ app.post('/api/request-approval', authMiddleware, async (req, res) => {
 });
 
 // Admin: get all pending approvals
+// Admin: get all pending approvals (with student details)
 app.get('/api/admin/pending-approvals', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
 
   const today = new Date().toISOString().split("T")[0];
-  const requests = await Attendance.find({ date: today, status: 'pending', approvalRequested: true });
-  res.json(requests);
+  const requests = await Attendance.find({ date: today, status: 'pending', approvalRequested: true }).lean();
+
+  // Attach student info (name + usn) from User collection
+  const withStudentInfo = await Promise.all(requests.map(async (reqItem) => {
+    const student = await User.findOne({ usn: reqItem.usn }).lean();
+    return {
+      ...reqItem,
+      name: student ? student.name : "Unknown",
+      usn: student ? student.usn : reqItem.usn
+    };
+  }));
+
+  res.json(withStudentInfo);
 });
+
 
 // Admin: approve student
 app.post('/api/admin/approve', authMiddleware, async (req, res) => {
