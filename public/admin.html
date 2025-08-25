@@ -177,12 +177,29 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
     .logout-btn { width: 36px; height: 36px; font-size: 18px; }
     .logout-text { font-size: 12px; }
 }
+.approval-btn {
+    position: fixed;
+    bottom: 20px;       /* distance from bottom */
+    left: 20px;         /* distance from left */
+    background: #3498db;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;  /* no underline */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+.approval-btn:hover {
+    background: #2980b9;
+    transform: scale(1.05);
+}
 
 
 </style>
 </head>
 <body>
-
+    
 <div class="logout-wrapper">
   <button class="logout-btn" onclick="logout()">🚪</button>
   <span class="logout-text">Logout</span>
@@ -193,15 +210,16 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
     <p>Total Present: <span id="total">0</span></p>
     <div class="list-box"><ul id="list"></ul></div>
 
-    <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+    <!-- group reset + approvals + email -->
+    <div class="button-row">
+        <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
+       
+    </div>
 
-    <hr style="margin: 20px 0;">
-<h2>Pending Approval Requests</h2>
-<div class="list-box"><ul id="approval-list"></ul></div>
-
-
-    <input type="email" id="email" placeholder="Enter faculty email" />
-    <button class="send" onclick="sendEmail()">📧 Send Attendance to Email</button>
+    <div class="button-row">
+        <input type="email" id="email" placeholder="Enter faculty email" style="flex:2; min-width:200px;"/>
+        <button class="send" onclick="sendEmail()">📧 Send Attendance</button>
+    </div>
 
     <hr style="margin: 20px 0;">
 
@@ -213,14 +231,21 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
       <input type="number" id="latitude" placeholder="Latitude" step="0.00001"/>
       <input type="number" id="longitude" placeholder="Longitude" step="0.00001"/>
       <input type="number" id="radius" placeholder="Radius in meters" step="1"/>
-      <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
-      <button class="send" id="detectBtn" onclick="detectLocation()">📍 Use My Location</button>
+
+      <div class="button-row">
+        <button class="save-location" onclick="saveCampusLocation()">💾 Save Location</button>
+        <button class="send" id="detectBtn" onclick="detectLocation()">📍 Use My Location</button>
+      </div>
+
       <h3>Saved Campus Locations:</h3>
       <div class="list-box"><ul id="campus-list"></ul></div>
     </div>
 </div>
 
 <div id="toast" class="toast"></div>
+<!-- Place this just before </body> -->
+<a href="admin-approvals.html" class="approval-btn">🔎 Manage Approvals</a>
+
 
 <script>
 const token = localStorage.getItem('token');
@@ -472,7 +497,7 @@ async function updateApproval(id, approve) {
     }
 }
 
-loadApprovals();
+
 
 </script>
 </body>
