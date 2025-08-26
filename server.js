@@ -27,8 +27,10 @@ const userSchema = new mongoose.Schema({
   usn: String,
   password: String,
   role: { type: String, default: 'student' },
-  deviceId: String
+  deviceId: String,
+  email: String    // <-- add this
 });
+
 
 const attendanceSchema = new mongoose.Schema({
   usn: String,
@@ -38,6 +40,7 @@ const attendanceSchema = new mongoose.Schema({
   approvalRequested: { type: Boolean, default: false },
   approvedByAdmin: { type: Boolean, default: false }
 });
+
 
 
 const campusSchema = new mongoose.Schema({
@@ -66,18 +69,23 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.ht
 
 // Register
 app.post('/api/register', async (req, res) => {
-  const { name, usn, password, role } = req.body;
-  if (!name || !usn || !password) return res.status(400).json({ error: "All fields required" });
+  const { name, usn, password, role, email } = req.body;
+  if (!name || !usn || !password || !email) 
+    return res.status(400).json({ error: "All fields required" });
 
   try {
     const existing = await User.findOne({ usn });
     if (existing) return res.status(400).json({ error: "USN already registered" });
 
-    const newUser = new User({ name, usn, password, role: role || 'student' });
+    const newUser = new User({ name, usn, password, role: role || 'student', email });
     await newUser.save();
     res.json({ message: "✅ Registration successful, please login" });
-  } catch (err) { console.error(err); res.status(500).json({ error: "Server error" }); }
+  } catch (err) { 
+    console.error(err); 
+    res.status(500).json({ error: "Server error" }); 
+  }
 });
+
 
 // Login with Device Lock
 app.post('/api/login', async (req, res) => {
@@ -295,6 +303,7 @@ app.get('/api/admin/pending-approvals', authMiddleware, async (req, res) => {
 
 
 // Admin: approve student
+// Admin: approve student
 app.post('/api/admin/approve', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
   if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
@@ -307,9 +316,28 @@ app.post('/api/admin/approve', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-  res.json({ message: '✅ Attendance approved' });
+
+  // Get student details
+  const student = await User.findOne({ usn: updated.usn }).lean();
+  if (student && student.email) {
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: student.email,
+        subject: "✅ Attendance Request Approved",
+        html: `<p>Hello <b>${student.name}</b>,</p>
+               <p>Your attendance request for <b>${updated.date}</b> has been <span style="color:green;">Approved</span> ✅ by Admin.</p>`
+      });
+    } catch (err) {
+      console.error("❌ Email error:", err);
+    }
+  }
+
+  res.json({ message: '✅ Attendance approved and email sent' });
 });
 
+
+// Admin: reject student
 // Admin: reject student
 app.post('/api/admin/reject', authMiddleware, async (req, res) => {
   const me = await User.findById(req.user.id).lean();
@@ -323,8 +351,27 @@ app.post('/api/admin/reject', authMiddleware, async (req, res) => {
   }, { new: true });
 
   if (!updated) return res.status(404).json({ error: 'Request not found' });
-  res.json({ message: '❌ Attendance rejected' });
+
+  // Get student details
+  const student = await User.findOne({ usn: updated.usn }).lean();
+  if (student && student.email) {
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: student.email,
+        subject: "❌ Attendance Request Rejected",
+        html: `<p>Hello <b>${student.name}</b>,</p>
+               <p>Your attendance request for <b>${updated.date}</b> has been 
+               <span style="color:red;">Rejected</span> ❌ by Admin.</p>`
+      });
+    } catch (err) {
+      console.error("❌ Email error:", err);
+    }
+  }
+
+  res.json({ message: '❌ Attendance rejected and email sent' });
 });
+
 
 const approvalSchema = new mongoose.Schema({
   studentName: String,
