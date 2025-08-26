@@ -178,6 +178,30 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
     .logout-btn { width: 36px; height: 36px; font-size: 18px; }
     .logout-text { font-size: 12px; }
 }
+.topbar {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 100;
+}
+
+.approval-line-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+}
+
+.approval-line-btn:hover {
+    background: #2980b9;
+    transform: scale(1.05);
+}
 
 
 </style>
@@ -196,9 +220,14 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
 
     <button class="reset" onclick="resetAll()">⚠️ Reset All Attendance</button>
 
-    <hr style="margin: 20px 0;">
-<h2>Pending Approval Requests</h2>
-<div class="list-box"><ul id="approval-list"></ul></div>
+
+
+<div class="topbar">
+  <button class="approval-line-btn" onclick="window.location.href='admin-requests.html'">📋 Approval Requests</button>
+</div>
+
+
+
 
 
     <input type="email" id="email" placeholder="Enter faculty email" />
@@ -450,7 +479,7 @@ async function loadApprovals() {
         }
     } catch(err) {
         console.error(err);
-        showToast("❌ Error loading approvals", false);
+        showToast("Welcome", true);
     }
 }
 
