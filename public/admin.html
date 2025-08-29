@@ -248,6 +248,19 @@ button.save-location:hover { background: #1e8449; transform: scale(1.05); }
       <h3>Saved Campus Locations:</h3>
       <div class="list-box"><ul id="campus-list"></ul></div>
     </div>
+    <hr style="margin: 20px 0;">
+
+<h2 id="ip-heading" onclick="toggleIPSettings()">
+  🌐 Allowed IP Settings <span id="ip-arrow">⬇️</span>
+</h2>
+
+<div id="ip-settings" style="display:none;">
+<input type="text" id="ip-address" placeholder="Enter IP or CIDR (e.g., 192.168.1.10 or 192.168.1.0/24)" />
+<button class="save-location" onclick="saveIP()">💾 Save IP</button>
+<button class="save-location" style="background:#3498db;" onclick="detectAndSaveIP()">🌐 Detect My IP</button>
+  <div class="list-box"><ul id="ip-list"></ul></div>
+</div>
+
 </div>
 
 <div id="toast" class="toast"></div>
@@ -440,7 +453,12 @@ function logout(){
     window.location.href="login.html"; 
 }
 
-document.addEventListener('DOMContentLoaded', load);
+document.addEventListener('DOMContentLoaded', () => {
+    load();
+    loadIPs(); // preload IPs
+});
+
+
 
 // Load pending approvals
 async function loadApprovals() {
@@ -502,7 +520,118 @@ async function updateApproval(id, approve) {
     }
 }
 
+async function loadIPs() {
+    try {
+        const res = await fetch('/api/admin/allowed-ips', { headers: { 'Authorization': 'Bearer ' + token } });
+        const ips = await res.json();
+        const ipList = document.getElementById('ip-list');
+        ipList.innerHTML = '';
+        if(ips && ips.length > 0){
+            ips.forEach((ip, i) => {
+                const li = document.createElement('li');
+                li.textContent = `${i+1}. ${ip.address}`;
+                
+                const delBtn = document.createElement('button');
+                delBtn.textContent = "❌";
+                delBtn.style.marginLeft = "10px";
+                delBtn.style.background = "#e74c3c";
+                delBtn.style.color = "white";
+                delBtn.style.border = "none";
+                delBtn.style.borderRadius = "50%";
+                delBtn.style.width = "20px";
+                delBtn.style.height = "20px";
+                delBtn.style.cursor = "pointer";
+                delBtn.onclick = () => removeIP(ip._id);
+
+                li.appendChild(delBtn);
+                ipList.appendChild(li);
+            });
+        } else {
+            ipList.innerHTML = 'No IPs whitelisted.';
+        }
+    } catch(err) {
+        console.error(err);
+        showToast("❌ Failed to load IPs", false);
+    }
+}
+
+async function saveIP(){
+    const address = document.getElementById('ip-address').value.trim();
+    if(!address){ alert("Enter a valid IP or CIDR"); return; }
+    try {
+        const res = await fetch('/api/admin/allowed-ip', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address })
+        });
+        const data = await res.json();
+        showToast(data.message || data.error, !!data.message);
+        document.getElementById('ip-address').value = '';
+        loadIPs();
+    } catch(err){
+        console.error(err);
+        showToast("❌ Failed to save IP", false);
+    }
+}
+
+async function removeIP(id){
+    if(!confirm("⚠️ Remove this IP from whitelist?")) return;
+    try {
+        const res = await fetch('/api/admin/allowed-ip/' + id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        showToast(data.message || data.error, !!data.message);
+        loadIPs();
+    } catch(err){
+        console.error(err);
+        showToast("❌ Failed to remove IP", false);
+    }
+}
+
+function toggleIPSettings(){
+    const box = document.getElementById('ip-settings');
+    const arrow = document.getElementById('ip-arrow');
+    if (box.style.display === "none") {
+        box.style.display = "block";
+        arrow.textContent = "⬆️"; 
+        loadIPs();
+    } else {
+        box.style.display = "none";
+        arrow.textContent = "⬇️"; 
+    }
+}
+
+async function detectAndSaveIP(){
+    try {
+        // Option 1: Fetch public IP via an API
+        const res = await fetch('https://api64.ipify.org?format=json');
+        const data = await res.json();
+        const myIP = data.ip;
+
+        if(!confirm(`Your detected IP is: ${myIP}\nDo you want to whitelist it?`)) return;
+
+        // Send to backend whitelist
+        const addRes = await fetch('/api/admin/allowed-ip', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: myIP })
+        });
+
+        const addData = await addRes.json();
+        showToast(addData.message || addData.error, !!addData.message);
+        loadIPs();
+
+    } catch(err){
+        console.error(err);
+        showToast("❌ Failed to detect IP", false);
+    }
+}
+
 loadApprovals();
+
+
 
 </script>
 </body>
