@@ -49,6 +49,12 @@ const campusSchema = new mongoose.Schema({
   radius: Number
 });
 
+const ipSchema = new mongoose.Schema({
+  address: String   // can be a single IP or CIDR range like 192.168.1.0/24
+});
+const IPWhitelist = mongoose.model('IPWhitelist', ipSchema);
+
+
 const User = mongoose.model('User', userSchema);
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 const Campus = mongoose.model('Campus', campusSchema);
@@ -141,27 +147,65 @@ function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
 
 // Attendance marking
 app.post('/api/attendance', authMiddleware, async (req, res) => {
-  const allowedIPs = ['49.37.250.175','117.230.5.171','152.57.115.200','152.57.74.97','127.0.0.1','::1','117.230.0.0/16','152.57.0.0/16','49.37.0.0/16','119.161.0.0/16'];
-  const clientIP = req.ip?.replace('::ffff:', '') || '';
-  if (!ipRangeCheck(clientIP, allowedIPs)) return res.status(403).json({ error: 'Attendance only from campus Wi-Fi' });
+  try {
+    // ✅ Detect real client IP
+    let clientIP =
+      req.headers['x-forwarded-for']?.split(',')[0].trim() || // if behind proxy
+      req.socket?.remoteAddress ||
+      req.ip ||
+      '';
 
-  const { latitude, longitude, status } = req.body;
-  if (!latitude || !longitude) return res.status(400).json({ error: 'GPS location required' });
+    // Normalize (remove IPv6 ::ffff: prefix)
+    if (clientIP.includes('::ffff:')) {
+      clientIP = clientIP.replace('::ffff:', '');
+    }
 
-  const campuses = await Campus.find({});
-  const withinAnyCampus = campuses.some(c => isWithinRadius(latitude, longitude, c.latitude, c.longitude, c.radius));
-  if (!withinAnyCampus) return res.status(403).json({ error: 'Attendance can only be marked inside campus area' });
+    const { latitude, longitude, status } = req.body;
 
-  const me = await User.findById(req.user.id).lean();
-  if (!me) return res.status(404).json({ error: 'User not found' });
+    // 🔹 Step 1: GPS check
+    let withinAnyCampus = false;
+    if (latitude && longitude) {
+      const campuses = await Campus.find({});
+      withinAnyCampus = campuses.some(c =>
+        isWithinRadius(latitude, longitude, c.latitude, c.longitude, c.radius)
+      );
+    }
 
-  const today = new Date().toISOString().split("T")[0];
-  const existing = await Attendance.findOne({ usn: me.usn, date: today });
-  if (existing) return res.json({ message: 'Attendance already marked today' });
+    // 🔹 Step 2: If GPS failed, fallback to IP check
+    if (!withinAnyCampus) {
+      const whitelist = await IPWhitelist.find({});
+      const allowedIPs = whitelist.map(ip => ip.address);
 
-  await Attendance.create({ usn: me.usn, date: today, status, markedBy: "student" });
-  res.json({ message: `Attendance marked as ${status}` });
+      // Check exact IP or CIDR ranges
+      const ipAllowed = allowedIPs.some(ip => ipRangeCheck(clientIP, ip));
+
+      if (!ipAllowed) {
+        return res.status(403).json({ error: '❌ Not inside campus or allowed IP', yourIP: clientIP });
+      }
+    }
+
+    // ✅ Passed either GPS or IP check
+    const me = await User.findById(req.user.id).lean();
+    if (!me) return res.status(404).json({ error: 'User not found' });
+
+    const today = new Date().toISOString().split('T')[0];
+    const existing = await Attendance.findOne({ usn: me.usn, date: today });
+    if (existing) return res.json({ message: 'Attendance already marked today' });
+
+    await Attendance.create({
+      usn: me.usn,
+      date: today,
+      status,
+      markedBy: 'student',
+    });
+
+    res.json({ message: `✅ Attendance marked as ${status}`, ipUsed: clientIP });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
+
 
 // Admin today
 app.get('/api/admin/today', authMiddleware, async (req,res)=>{
@@ -422,6 +466,53 @@ app.post("/api/attendance/update-approval", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: "Error updating approval" });
   }
+});
+
+// Add new IP
+// Add new IP (with normalization + duplicate check)
+app.post('/api/admin/allowed-ip', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin')
+    return res.status(403).json({ error: 'Access denied' });
+
+  let { address } = req.body;
+  if (!address) return res.status(400).json({ error: 'IP address required' });
+
+  // 🔹 Normalize: remove ::ffff: prefix
+  address = address.replace(/^::ffff:/, '').trim();
+
+  try {
+    // Check duplicate
+    const exists = await IPWhitelist.findOne({ address });
+    if (exists) {
+      return res.json({ message: '⚠️ This IP is already whitelisted' });
+    }
+
+    await IPWhitelist.create({ address });
+    res.json({ message: `✅ IP ${address} added to whitelist` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error while adding IP' });
+  }
+});
+
+
+// Get all IPs
+app.get('/api/admin/allowed-ips', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  const ips = await IPWhitelist.find({});
+  res.json(ips);
+});
+
+// Delete IP
+app.delete('/api/admin/allowed-ip/:id', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id).lean();
+  if (!me || me.role !== 'admin') return res.status(403).json({ error: 'Access denied' });
+
+  await IPWhitelist.findByIdAndDelete(req.params.id);
+  res.json({ message: '✅ IP removed from whitelist' });
 });
 
 
